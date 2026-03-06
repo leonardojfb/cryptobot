@@ -13806,3 +13806,187 @@ telegram.error.NetworkError: httpx.ConnectError: [Errno 11001] getaddrinfo faile
 2026-03-06 13:31:51,507 [INFO] main — ⛔ Deteniendo...
 2026-03-06 13:31:51,507 [INFO] bot — ⛔ Bot detenido
 2026-03-06 13:31:51,507 [INFO] main — Bot detenido.
+2026-03-06 13:47:28,746 [INFO] main — ============================================================
+2026-03-06 13:47:28,747 [INFO] main —   BOT AUTÓNOMO — BYBIT PAPER TRADING  v3
+2026-03-06 13:47:28,747 [INFO] main — ============================================================
+2026-03-06 13:47:28,747 [INFO] main — Modo: PAPER (api-demo.bybit.com)
+2026-03-06 13:47:29,427 [INFO] ai_memory — ✅ ai_memory.db inicializada en ai_memory.db
+2026-03-06 13:47:29,427 [INFO] ai_filter — AIFilter ✅ Activo model=deepseek-chat
+2026-03-06 13:47:29,687 [INFO] notify_prefs — notify_prefs cargadas: 4/9 activas
+2026-03-06 13:47:29,689 [INFO] tg_controller — ======================================================================
+2026-03-06 13:47:29,690 [INFO] tg_controller — TELEGRAM BOT LOGGING INICIALIZADO
+2026-03-06 13:47:29,690 [INFO] tg_controller — Fecha/Hora: 2026-03-06 13:47:29
+2026-03-06 13:47:29,690 [INFO] tg_controller — Logs completos: logs\telegram_full.log
+2026-03-06 13:47:29,690 [INFO] tg_controller — Solo errores: logs\telegram_errors.log
+2026-03-06 13:47:29,690 [INFO] tg_controller — ======================================================================
+2026-03-06 13:47:29,693 [INFO] bybit_client — BybitClient → DEMO (api-demo.bybit.com)
+2026-03-06 13:47:29,693 [INFO] bybit_client — API Key: zUCvRj...0KEa
+2026-03-06 13:47:29,694 [INFO] learning_engine — LearningEngine v2 — 13 trades cerrados en historial
+2026-03-06 13:47:29,695 [INFO] bot — TelegramNotifier activo
+2026-03-06 13:47:29,695 [INFO] news_engine — NewsEngine iniciado — scan cada 120s
+2026-03-06 13:47:32,243 [INFO] bot — ✅ Telegram OK → chat_id=8172390917
+2026-03-06 13:47:32,243 [INFO] bot — Bot iniciado — 🟡 PAPER — ['BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'BNBUSDT', 'XRPUSDT']
+2026-03-06 13:47:32,912 [INFO] main — ✅ Datos de mercado OK — BTC: 68,612.54 USDT
+2026-03-06 13:47:33,287 [INFO] bybit_client — ✅ Autenticación API verificada OK
+2026-03-06 13:47:34,356 [INFO] main — ✅ Auth OK — Balance USDT disponible: 52,169.87
+2026-03-06 13:47:34,356 [INFO] main — ✅ Telegram controller iniciado
+2026-03-06 13:47:34,356 [INFO] tg_controller — [INIT] Iniciando Telegram bot controller...
+2026-03-06 13:47:34,357 [INFO] news_engine — 📰 Escaneando noticias...
+2026-03-06 13:47:34,357 [INFO] news_engine — NewsEngine background thread iniciado
+2026-03-06 13:47:34,357 [INFO] tg_controller — [INIT] BOT_INSTANCE asignado correctamente
+2026-03-06 13:47:34,358 [INFO] bot — Escáner iniciado
+2026-03-06 13:47:34,377 [INFO] bot — Monitor iniciado
+2026-03-06 13:47:34,379 [INFO] bot — 🚀 Bot autónomo en marcha
+2026-03-06 13:47:34,381 [INFO] main — 🚀 Bot activo | Watchlist: BTCUSDT,ETHUSDT,SOLUSDT,BNBUSDT,XRPUSDT
+2026-03-06 13:47:34,381 [INFO] main —    TFs analizados: 1m 3m 5m 15m 30m 1h 2h 4h 6h 12h 1D 1W (12 TFs)
+2026-03-06 13:47:34,382 [INFO] main —    Scan: 30s | Monitor: 10s
+2026-03-06 13:47:35,041 [INFO] tg_controller — [INIT] Registrando 30 comandos...
+2026-03-06 13:47:35,041 [INFO] tg_controller — [INIT] Registrando CallbackQueryHandler para botones inline
+2026-03-06 13:47:35,042 [INFO] tg_controller — ✅ Telegram bot iniciado — 30 comandos + inline buttons
+2026-03-06 13:47:35,042 [INFO] tg_controller — [INIT] ⏳ Polling iniciado - esperando mensajes y interacciones de usuarios...
+2026-03-06 13:47:35,075 [INFO] main — ✅ | Bal: 52169.87 USDT | Pos: 0 | Trades: 13 | WR: 0.0% | PnL: -597.26 USDT
+2026-03-06 13:47:35,785 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot7279484602:AAFUiP9txeD4_8-Bc_sudk7DJbP7gUcS9Eg/getMe "HTTP/1.1 200 OK"
+2026-03-06 13:47:36,154 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot7279484602:AAFUiP9txeD4_8-Bc_sudk7DJbP7gUcS9Eg/setMyCommands "HTTP/1.1 200 OK"
+2026-03-06 13:47:36,155 [INFO] tg_controller — ✅ 30 comandos registrados en BotFather
+2026-03-06 13:47:36,396 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot7279484602:AAFUiP9txeD4_8-Bc_sudk7DJbP7gUcS9Eg/deleteWebhook "HTTP/1.1 200 OK"
+2026-03-06 13:47:36,399 [INFO] telegram.ext.Application — Application started
+2026-03-06 13:47:38,169 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot7279484602:AAFUiP9txeD4_8-Bc_sudk7DJbP7gUcS9Eg/getUpdates "HTTP/1.1 200 OK"
+2026-03-06 13:47:38,566 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot7279484602:AAFUiP9txeD4_8-Bc_sudk7DJbP7gUcS9Eg/sendMessage "HTTP/1.1 200 OK"
+2026-03-06 13:47:39,378 [INFO] news_engine — Fear & Greed: 18 — Extreme Fear
+2026-03-06 13:47:39,381 [INFO] news_engine — 📰 22 noticias nuevas | Global bias: -0.15 | Alertas: 0
+2026-03-06 13:47:45,053 [INFO] bot — 📊 BTCUSDT: FLAT   score=-1.90  conf=22%  macro=SHORT  mid=NEUTRAL  entry=NEUTRAL  ⚡SQUEEZE
+2026-03-06 13:47:48,442 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot7279484602:AAFUiP9txeD4_8-Bc_sudk7DJbP7gUcS9Eg/getUpdates "HTTP/1.1 200 OK"
+2026-03-06 13:47:57,642 [INFO] bot — 📊 ETHUSDT: SHORT  score=-2.87  conf=33%  macro=SHORT  mid=NEUTRAL  entry=SHORT  ⚡SQUEEZE
+2026-03-06 13:47:58,708 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot7279484602:AAFUiP9txeD4_8-Bc_sudk7DJbP7gUcS9Eg/getUpdates "HTTP/1.1 200 OK"
+2026-03-06 13:48:05,097 [INFO] ai_filter — AIFilter [ETHUSDT] IA indecisa (30%) → fail-open
+2026-03-06 13:48:08,986 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot7279484602:AAFUiP9txeD4_8-Bc_sudk7DJbP7gUcS9Eg/getUpdates "HTTP/1.1 200 OK"
+2026-03-06 13:48:10,972 [INFO] bot — ✅ ABIERTO ETHUSDT SHORT @ 1973.9900  TP=1854.2  SL=2028.44  score=-2.87
+2026-03-06 13:48:19,252 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot7279484602:AAFUiP9txeD4_8-Bc_sudk7DJbP7gUcS9Eg/getUpdates "HTTP/1.1 200 OK"
+2026-03-06 13:48:24,953 [INFO] bot — 📊 SOLUSDT: FLAT   score=-1.88  conf=22%  macro=SHORT  mid=NEUTRAL  entry=SHORT  ⚡SQUEEZE
+2026-03-06 13:48:29,523 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot7279484602:AAFUiP9txeD4_8-Bc_sudk7DJbP7gUcS9Eg/getUpdates "HTTP/1.1 200 OK"
+2026-03-06 13:48:42,482 [INFO] main — ============================================================
+2026-03-06 13:48:42,483 [INFO] main —   BOT AUTÓNOMO — BYBIT PAPER TRADING  v3
+2026-03-06 13:48:42,483 [INFO] main — ============================================================
+2026-03-06 13:48:42,483 [INFO] main — Modo: PAPER (api-demo.bybit.com)
+2026-03-06 13:48:43,133 [INFO] ai_memory — ✅ ai_memory.db inicializada en ai_memory.db
+2026-03-06 13:48:43,133 [INFO] ai_filter — AIFilter ✅ Activo model=deepseek-chat
+2026-03-06 13:48:43,349 [INFO] notify_prefs — notify_prefs cargadas: 4/9 activas
+2026-03-06 13:48:43,353 [INFO] tg_controller — ======================================================================
+2026-03-06 13:48:43,354 [INFO] tg_controller — TELEGRAM BOT LOGGING INICIALIZADO
+2026-03-06 13:48:43,355 [INFO] tg_controller — Fecha/Hora: 2026-03-06 13:48:43
+2026-03-06 13:48:43,355 [INFO] tg_controller — Logs completos: logs\telegram_full.log
+2026-03-06 13:48:43,356 [INFO] tg_controller — Solo errores: logs\telegram_errors.log
+2026-03-06 13:48:43,356 [INFO] tg_controller — ======================================================================
+2026-03-06 13:48:43,360 [INFO] bybit_client — BybitClient → DEMO (api-demo.bybit.com)
+2026-03-06 13:48:43,360 [INFO] bybit_client — API Key: zUCvRj...0KEa
+2026-03-06 13:48:43,373 [INFO] learning_engine — LearningEngine v2 — 13 trades cerrados en historial
+2026-03-06 13:48:43,374 [INFO] bot — TelegramNotifier activo
+2026-03-06 13:48:43,374 [INFO] news_engine — NewsEngine iniciado — scan cada 120s
+2026-03-06 13:48:44,816 [INFO] bot — 📡 Nueva posición detectada: ETHUSDT SHORT @ 1971.65
+2026-03-06 13:48:44,819 [INFO] bot — Posiciones sync: ['ETHUSDT']
+2026-03-06 13:48:45,945 [INFO] bot — ✅ Telegram OK → chat_id=8172390917
+2026-03-06 13:48:45,946 [INFO] bot — Bot iniciado — 🟡 PAPER — ['BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'BNBUSDT', 'XRPUSDT']
+2026-03-06 13:48:46,719 [INFO] main — ✅ Datos de mercado OK — BTC: 68,521.30 USDT
+2026-03-06 13:48:47,096 [INFO] bybit_client — ✅ Autenticación API verificada OK
+2026-03-06 13:48:48,164 [INFO] main — ✅ Auth OK — Balance USDT disponible: 52,149.09
+2026-03-06 13:48:48,165 [INFO] main — ✅ Telegram controller iniciado
+2026-03-06 13:48:48,165 [INFO] tg_controller — [INIT] Iniciando Telegram bot controller...
+2026-03-06 13:48:48,166 [INFO] news_engine — 📰 Escaneando noticias...
+2026-03-06 13:48:48,166 [INFO] news_engine — NewsEngine background thread iniciado
+2026-03-06 13:48:48,166 [INFO] tg_controller — [INIT] BOT_INSTANCE asignado correctamente
+2026-03-06 13:48:48,167 [INFO] bot — Escáner iniciado
+2026-03-06 13:48:48,196 [INFO] bot — Monitor iniciado
+2026-03-06 13:48:48,196 [INFO] bot — 🚀 Bot autónomo en marcha
+2026-03-06 13:48:48,200 [INFO] main — 🚀 Bot activo | Watchlist: BTCUSDT,ETHUSDT,SOLUSDT,BNBUSDT,XRPUSDT
+2026-03-06 13:48:48,201 [INFO] main —    TFs analizados: 1m 3m 5m 15m 30m 1h 2h 4h 6h 12h 1D 1W (12 TFs)
+2026-03-06 13:48:48,202 [INFO] main —    Scan: 30s | Monitor: 10s
+2026-03-06 13:48:49,054 [INFO] main — ✅ | Bal: 52149.09 USDT | Pos: 1 | Trades: 13 | WR: 0.0% | PnL: -597.26 USDT
+2026-03-06 13:48:49,218 [INFO] tg_controller — [INIT] Registrando 30 comandos...
+2026-03-06 13:48:49,218 [INFO] tg_controller — [INIT] Registrando CallbackQueryHandler para botones inline
+2026-03-06 13:48:49,219 [INFO] tg_controller — ✅ Telegram bot iniciado — 30 comandos + inline buttons
+2026-03-06 13:48:49,219 [INFO] tg_controller — [INIT] ⏳ Polling iniciado - esperando mensajes y interacciones de usuarios...
+2026-03-06 13:48:49,953 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot7279484602:AAFUiP9txeD4_8-Bc_sudk7DJbP7gUcS9Eg/getMe "HTTP/1.1 200 OK"
+2026-03-06 13:48:50,428 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot7279484602:AAFUiP9txeD4_8-Bc_sudk7DJbP7gUcS9Eg/setMyCommands "HTTP/1.1 200 OK"
+2026-03-06 13:48:50,429 [INFO] tg_controller — ✅ 30 comandos registrados en BotFather
+2026-03-06 13:48:50,670 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot7279484602:AAFUiP9txeD4_8-Bc_sudk7DJbP7gUcS9Eg/deleteWebhook "HTTP/1.1 200 OK"
+2026-03-06 13:48:50,674 [INFO] telegram.ext.Application — Application started
+2026-03-06 13:48:53,371 [INFO] news_engine — Fear & Greed: 18 — Extreme Fear
+2026-03-06 13:48:53,375 [INFO] news_engine — 📰 22 noticias nuevas | Global bias: -0.15 | Alertas: 0
+2026-03-06 13:48:54,405 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot7279484602:AAFUiP9txeD4_8-Bc_sudk7DJbP7gUcS9Eg/getUpdates "HTTP/1.1 200 OK"
+2026-03-06 13:48:54,782 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot7279484602:AAFUiP9txeD4_8-Bc_sudk7DJbP7gUcS9Eg/sendMessage "HTTP/1.1 200 OK"
+2026-03-06 13:49:01,322 [INFO] bot — 📊 BTCUSDT: FLAT   score=-2.02  conf=23%  macro=SHORT  mid=NEUTRAL  entry=SHORT  ⚡SQUEEZE
+2026-03-06 13:49:04,661 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot7279484602:AAFUiP9txeD4_8-Bc_sudk7DJbP7gUcS9Eg/getUpdates "HTTP/1.1 200 OK"
+2026-03-06 13:49:11,210 [INFO] main — ⛔ Deteniendo...
+2026-03-06 13:49:11,210 [INFO] bot — ⛔ Bot detenido
+2026-03-06 13:49:11,210 [INFO] main — Bot detenido.
+2026-03-06 13:56:23,086 [INFO] main — ============================================================
+2026-03-06 13:56:23,086 [INFO] main —   BOT AUTÓNOMO — BYBIT PAPER TRADING  v3
+2026-03-06 13:56:23,086 [INFO] main — ============================================================
+2026-03-06 13:56:23,086 [INFO] main — Modo: PAPER (api-demo.bybit.com)
+2026-03-06 13:56:23,760 [INFO] ai_memory — ✅ ai_memory.db inicializada en ai_memory.db
+2026-03-06 13:56:23,761 [INFO] ai_filter — AIFilter ✅ Activo model=deepseek-chat
+2026-03-06 13:56:24,117 [INFO] notify_prefs — notify_prefs cargadas: 4/9 activas
+2026-03-06 13:56:24,127 [INFO] tg_controller — ======================================================================
+2026-03-06 13:56:24,129 [INFO] tg_controller — TELEGRAM BOT LOGGING INICIALIZADO
+2026-03-06 13:56:24,130 [INFO] tg_controller — Fecha/Hora: 2026-03-06 13:56:24
+2026-03-06 13:56:24,130 [INFO] tg_controller — Logs completos: logs\telegram_full.log
+2026-03-06 13:56:24,131 [INFO] tg_controller — Solo errores: logs\telegram_errors.log
+2026-03-06 13:56:24,131 [INFO] tg_controller — ======================================================================
+2026-03-06 13:56:24,137 [INFO] bybit_client — BybitClient → DEMO (api-demo.bybit.com)
+2026-03-06 13:56:24,137 [INFO] bybit_client — API Key: zUCvRj...0KEa
+2026-03-06 13:56:24,139 [INFO] learning_engine — LearningEngine v2 — 13 trades cerrados en historial
+2026-03-06 13:56:24,140 [INFO] bot — TelegramNotifier activo
+2026-03-06 13:56:24,140 [INFO] news_engine — NewsEngine iniciado — scan cada 120s
+2026-03-06 13:56:25,613 [INFO] bot — 📡 Nueva posición detectada: ETHUSDT SHORT @ 1971.65
+2026-03-06 13:56:25,616 [INFO] bot — Posiciones sync: ['ETHUSDT']
+2026-03-06 13:56:26,662 [INFO] bot — ✅ Telegram OK → chat_id=8172390917
+2026-03-06 13:56:26,663 [INFO] bot — Bot iniciado — 🟡 PAPER — ['BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'BNBUSDT', 'XRPUSDT']
+2026-03-06 13:56:27,301 [INFO] main — ✅ Datos de mercado OK — BTC: 68,353.46 USDT
+2026-03-06 13:56:28,403 [INFO] bybit_client — ✅ Autenticación API verificada OK
+2026-03-06 13:56:28,777 [INFO] main — ✅ Auth OK — Balance USDT disponible: 52,149.09
+2026-03-06 13:56:28,777 [INFO] main — ✅ Telegram controller iniciado
+2026-03-06 13:56:28,777 [INFO] tg_controller — [INIT] Iniciando Telegram bot controller...
+2026-03-06 13:56:28,777 [INFO] news_engine — 📰 Escaneando noticias...
+2026-03-06 13:56:28,778 [INFO] news_engine — NewsEngine background thread iniciado
+2026-03-06 13:56:28,778 [INFO] tg_controller — [INIT] BOT_INSTANCE asignado correctamente
+2026-03-06 13:56:28,778 [INFO] bot — Escáner iniciado
+2026-03-06 13:56:28,779 [INFO] bot — Monitor iniciado
+2026-03-06 13:56:28,779 [INFO] bot — 🚀 Bot autónomo en marcha
+2026-03-06 13:56:28,808 [INFO] main — 🚀 Bot activo | Watchlist: BTCUSDT,ETHUSDT,SOLUSDT,BNBUSDT,XRPUSDT
+2026-03-06 13:56:28,808 [INFO] main —    TFs analizados: 1m 3m 5m 15m 30m 1h 2h 4h 6h 12h 1D 1W (12 TFs)
+2026-03-06 13:56:28,809 [INFO] main —    Scan: 30s | Monitor: 10s
+2026-03-06 13:56:29,528 [INFO] tg_controller — [INIT] Registrando 30 comandos...
+2026-03-06 13:56:29,529 [INFO] tg_controller — [INIT] Registrando CallbackQueryHandler para botones inline
+2026-03-06 13:56:29,529 [INFO] tg_controller — ✅ Telegram bot iniciado — 30 comandos + inline buttons
+2026-03-06 13:56:29,530 [INFO] tg_controller — [INIT] ⏳ Polling iniciado - esperando mensajes y interacciones de usuarios...
+2026-03-06 13:56:29,574 [INFO] main — ✅ | Bal: 52149.09 USDT | Pos: 1 | Trades: 13 | WR: 0.0% | PnL: -597.26 USDT
+2026-03-06 13:56:30,299 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot7279484602:AAFUiP9txeD4_8-Bc_sudk7DJbP7gUcS9Eg/getMe "HTTP/1.1 200 OK"
+2026-03-06 13:56:30,681 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot7279484602:AAFUiP9txeD4_8-Bc_sudk7DJbP7gUcS9Eg/setMyCommands "HTTP/1.1 200 OK"
+2026-03-06 13:56:30,682 [INFO] tg_controller — ✅ 30 comandos registrados en BotFather
+2026-03-06 13:56:30,931 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot7279484602:AAFUiP9txeD4_8-Bc_sudk7DJbP7gUcS9Eg/deleteWebhook "HTTP/1.1 200 OK"
+2026-03-06 13:56:30,933 [INFO] telegram.ext.Application — Application started
+2026-03-06 13:56:31,649 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot7279484602:AAFUiP9txeD4_8-Bc_sudk7DJbP7gUcS9Eg/getUpdates "HTTP/1.1 200 OK"
+2026-03-06 13:56:32,098 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot7279484602:AAFUiP9txeD4_8-Bc_sudk7DJbP7gUcS9Eg/sendMessage "HTTP/1.1 200 OK"
+2026-03-06 13:56:33,997 [INFO] news_engine — Fear & Greed: 18 — Extreme Fear
+2026-03-06 13:56:34,006 [INFO] news_engine — 📰 22 noticias nuevas | Global bias: -0.15 | Alertas: 0
+2026-03-06 13:56:40,313 [INFO] bot — 📊 BTCUSDT: FLAT   score=-2.33  conf=27%  macro=SHORT  mid=NEUTRAL  entry=SHORT  ⚡SQUEEZE
+2026-03-06 13:56:41,895 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot7279484602:AAFUiP9txeD4_8-Bc_sudk7DJbP7gUcS9Eg/getUpdates "HTTP/1.1 200 OK"
+2026-03-06 13:56:52,134 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot7279484602:AAFUiP9txeD4_8-Bc_sudk7DJbP7gUcS9Eg/getUpdates "HTTP/1.1 200 OK"
+2026-03-06 13:56:52,679 [INFO] bot — 📊 ETHUSDT: SHORT  score=-3.12  conf=36%  macro=SHORT  mid=NEUTRAL  entry=SHORT  ⚡SQUEEZE
+2026-03-06 13:57:02,373 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot7279484602:AAFUiP9txeD4_8-Bc_sudk7DJbP7gUcS9Eg/getUpdates "HTTP/1.1 200 OK"
+2026-03-06 13:57:05,993 [INFO] bot — 📊 SOLUSDT: FLAT   score=-2.19  conf=28%  macro=SHORT  mid=NEUTRAL  entry=SHORT  ⚡SQUEEZE
+2026-03-06 13:57:12,615 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot7279484602:AAFUiP9txeD4_8-Bc_sudk7DJbP7gUcS9Eg/getUpdates "HTTP/1.1 200 OK"
+2026-03-06 13:57:20,193 [INFO] bot — 📊 BNBUSDT: FLAT   score=-0.70  conf=8%  macro=NEUTRAL  mid=NEUTRAL  entry=SHORT  ⚡SQUEEZE
+2026-03-06 13:57:22,852 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot7279484602:AAFUiP9txeD4_8-Bc_sudk7DJbP7gUcS9Eg/getUpdates "HTTP/1.1 200 OK"
+2026-03-06 13:57:30,639 [INFO] main — ✅ | Bal: 52149.09 USDT | Pos: 1 | Trades: 13 | WR: 0.0% | PnL: -597.26 USDT
+2026-03-06 13:57:33,089 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot7279484602:AAFUiP9txeD4_8-Bc_sudk7DJbP7gUcS9Eg/getUpdates "HTTP/1.1 200 OK"
+2026-03-06 13:57:34,786 [INFO] bot — 📊 XRPUSDT: SHORT  score=-3.75  conf=56%  macro=SHORT  mid=SHORT  entry=SHORT  ⚡SQUEEZE
+2026-03-06 13:57:41,163 [INFO] ai_filter — AIFilter [XRPUSDT] IA indecisa (30%) → fail-open
+2026-03-06 13:57:43,328 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot7279484602:AAFUiP9txeD4_8-Bc_sudk7DJbP7gUcS9Eg/getUpdates "HTTP/1.1 200 OK"
+2026-03-06 13:57:44,431 [WARNING] bybit_client — Symbol XRPUSDT not found in instruments, using defaults
+2026-03-06 13:57:44,812 [WARNING] bybit_client — POST /v5/order/create [10001] Qty invalid
+2026-03-06 13:57:44,812 [ERROR] bot — Order error XRPUSDT: Qty invalid
+2026-03-06 13:57:46,313 [INFO] bot — 🔍 Auto-scan mercado...
+2026-03-06 13:57:49,075 [INFO] main — ⛔ Deteniendo...
+2026-03-06 13:57:49,075 [INFO] bot — ⛔ Bot detenido
+2026-03-06 13:57:49,075 [INFO] main — Bot detenido.

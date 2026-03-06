@@ -31,3 +31,60 @@
 [2026-03-06 13:27:48] tg_controller [INFO] run_telegram_bot:1175 - ✅ Telegram bot iniciado — 30 comandos + inline buttons
 [2026-03-06 13:27:48] tg_controller [INFO] run_telegram_bot:1176 - [INIT] ⏳ Polling iniciado - esperando mensajes y interacciones de usuarios...
 [2026-03-06 13:27:49] tg_controller [INFO] _post_init:1136 - ✅ 30 comandos registrados en BotFather
+[2026-03-06 13:47:29] tg_controller [INFO] setup_telegram_logging:83 - ======================================================================
+[2026-03-06 13:47:29] tg_controller [INFO] setup_telegram_logging:84 - TELEGRAM BOT LOGGING INICIALIZADO
+[2026-03-06 13:47:29] tg_controller [INFO] setup_telegram_logging:85 - Fecha/Hora: 2026-03-06 13:47:29
+[2026-03-06 13:47:29] tg_controller [INFO] setup_telegram_logging:86 - Logs completos: logs\telegram_full.log
+[2026-03-06 13:47:29] tg_controller [INFO] setup_telegram_logging:87 - Solo errores: logs\telegram_errors.log
+[2026-03-06 13:47:29] tg_controller [INFO] setup_telegram_logging:88 - ======================================================================
+[2026-03-06 13:47:34] tg_controller [INFO] run_telegram_bot:1144 - [INIT] Iniciando Telegram bot controller...
+[2026-03-06 13:47:34] tg_controller [INFO] run_telegram_bot:1153 - [INIT] BOT_INSTANCE asignado correctamente
+[2026-03-06 13:47:35] tg_controller [INFO] run_telegram_bot:1165 - [INIT] Registrando 30 comandos...
+[2026-03-06 13:47:35] tg_controller [INFO] run_telegram_bot:1172 - [INIT] Registrando CallbackQueryHandler para botones inline
+[2026-03-06 13:47:35] tg_controller [INFO] run_telegram_bot:1175 - ✅ Telegram bot iniciado — 30 comandos + inline buttons
+[2026-03-06 13:47:35] tg_controller [INFO] run_telegram_bot:1176 - [INIT] ⏳ Polling iniciado - esperando mensajes y interacciones de usuarios...
+[2026-03-06 13:47:36] tg_controller [INFO] _post_init:1136 - ✅ 30 comandos registrados en BotFather
+[2026-03-06 13:48:43] tg_controller [INFO] setup_telegram_logging:83 - ======================================================================
+[2026-03-06 13:48:43] tg_controller [INFO] setup_telegram_logging:84 - TELEGRAM BOT LOGGING INICIALIZADO
+[2026-03-06 13:48:43] tg_controller [INFO] setup_telegram_logging:85 - Fecha/Hora: 2026-03-06 13:48:43
+[2026-03-06 13:48:43] tg_controller [INFO] setup_telegram_logging:86 - Logs completos: logs\telegram_full.log
+[2026-03-06 13:48:43] tg_controller [INFO] setup_telegram_logging:87 - Solo errores: logs\telegram_errors.log
+[2026-03-06 13:48:43] tg_controller [INFO] setup_telegram_logging:88 - ======================================================================
+[2026-03-06 13:48:48] tg_controller [INFO] run_telegram_bot:1144 - [INIT] Iniciando Telegram bot controller...
+[2026-03-06 13:48:48] tg_controller [INFO] run_telegram_bot:1153 - [INIT] BOT_INSTANCE asignado correctamente
+[2026-03-06 13:48:49] tg_controller [INFO] run_telegram_bot:1165 - [INIT] Registrando 30 comandos...
+[2026-03-06 13:48:49] tg_controller [INFO] run_telegram_bot:1172 - [INIT] Registrando CallbackQueryHandler para botones inline
+[2026-03-06 13:48:49] tg_controller [INFO] run_telegram_bot:1175 - ✅ Telegram bot iniciado — 30 comandos + inline buttons
+[2026-03-06 13:48:49] tg_controller [INFO] run_telegram_bot:1176 - [INIT] ⏳ Polling iniciado - esperando mensajes y interacciones de usuarios...
+[2026-03-06 13:48:50] tg_controller [INFO] _post_init:1136 - ✅ 30 comandos registrados en BotFather
+[2026-03-06 13:56:24] tg_controller [INFO] setup_telegram_logging:83 - ======================================================================
+[2026-03-06 13:56:24] tg_controller [INFO] setup_telegram_logging:84 - TELEGRAM BOT LOGGING INICIALIZADO
+[2026-03-06 13:56:24] tg_controller [INFO] setup_telegram_logging:85 - Fecha/Hora: 2026-03-06 13:56:24
+[2026-03-06 13:56:24] tg_controller [INFO] setup_telegram_logging:86 - Logs completos: logs\telegram_full.log
+[2026-03-06 13:56:24] tg_controller [INFO] setup_telegram_logging:87 - Solo errores: logs\telegram_errors.log
+[2026-03-06 13:56:24] tg_controller [INFO] setup_telegram_logging:88 - ======================================================================
+[2026-03-06 13:56:28] tg_controller [INFO] run_telegram_bot:1147 - [INIT] Iniciando Telegram bot controller...
+[2026-03-06 13:56:28] tg_controller [INFO] run_telegram_bot:1156 - [INIT] BOT_INSTANCE asignado correctamente
+[2026-03-06 13:56:29] tg_controller [INFO] run_telegram_bot:1168 - [INIT] Registrando 30 comandos...
+[2026-03-06 13:56:29] tg_controller [INFO] run_telegram_bot:1175 - [INIT] Registrando CallbackQueryHandler para botones inline
+[2026-03-06 13:56:29] tg_controller [INFO] run_telegram_bot:1178 - ✅ Telegram bot iniciado — 30 comandos + inline buttons
+[2026-03-06 13:56:29] tg_controller [INFO] run_telegram_bot:1179 - [INIT] ⏳ Polling iniciado - esperando mensajes y interacciones de usuarios...
+[2026-03-06 13:56:30] tg_controller [INFO] _post_init:1139 - ✅ 30 comandos registrados en BotFather
+[2026-03-06 14:09:55] tg_controller [INFO] setup_telegram_logging:83 - ======================================================================
+[2026-03-06 14:09:55] tg_controller [INFO] setup_telegram_logging:84 - TELEGRAM BOT LOGGING INICIALIZADO
+[2026-03-06 14:09:55] tg_controller [INFO] setup_telegram_logging:85 - Fecha/Hora: 2026-03-06 14:09:55
+[2026-03-06 14:09:55] tg_controller [INFO] setup_telegram_logging:86 - Logs completos: logs\telegram_full.log
+[2026-03-06 14:09:55] tg_controller [INFO] setup_telegram_logging:87 - Solo errores: logs\telegram_errors.log
+[2026-03-06 14:09:55] tg_controller [INFO] setup_telegram_logging:88 - ======================================================================
+[2026-03-06 14:10:06] tg_controller [INFO] setup_telegram_logging:83 - ======================================================================
+[2026-03-06 14:10:06] tg_controller [INFO] setup_telegram_logging:84 - TELEGRAM BOT LOGGING INICIALIZADO
+[2026-03-06 14:10:06] tg_controller [INFO] setup_telegram_logging:85 - Fecha/Hora: 2026-03-06 14:10:06
+[2026-03-06 14:10:06] tg_controller [INFO] setup_telegram_logging:86 - Logs completos: logs\telegram_full.log
+[2026-03-06 14:10:06] tg_controller [INFO] setup_telegram_logging:87 - Solo errores: logs\telegram_errors.log
+[2026-03-06 14:10:06] tg_controller [INFO] setup_telegram_logging:88 - ======================================================================
+[2026-03-06 14:12:17] tg_controller [INFO] setup_telegram_logging:83 - ======================================================================
+[2026-03-06 14:12:17] tg_controller [INFO] setup_telegram_logging:84 - TELEGRAM BOT LOGGING INICIALIZADO
+[2026-03-06 14:12:17] tg_controller [INFO] setup_telegram_logging:85 - Fecha/Hora: 2026-03-06 14:12:17
+[2026-03-06 14:12:17] tg_controller [INFO] setup_telegram_logging:86 - Logs completos: logs\telegram_full.log
+[2026-03-06 14:12:17] tg_controller [INFO] setup_telegram_logging:87 - Solo errores: logs\telegram_errors.log
+[2026-03-06 14:12:17] tg_controller [INFO] setup_telegram_logging:88 - ======================================================================

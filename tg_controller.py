@@ -9,7 +9,7 @@ tg_controller.py v4 — Sistema completo de Telegram
 """
 
 import asyncio, logging, os, time, threading
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
 from dotenv import load_dotenv
 load_dotenv()
 
@@ -22,6 +22,16 @@ try:
     TG_AVAILABLE = True
 except ImportError:
     TG_AVAILABLE = False
+    # Fallback types para TYPE_CHECKING cuando la librería no está instalada
+    if TYPE_CHECKING:
+        from telegram import Update, BotCommand, InlineKeyboardButton, InlineKeyboardMarkup
+        from telegram.constants import ParseMode
+        from telegram.ext import (
+            Application, CommandHandler, CallbackQueryHandler, ContextTypes,
+        )
+    else:
+        Update = BotCommand = InlineKeyboardButton = InlineKeyboardMarkup = None
+        ParseMode = Application = CommandHandler = CallbackQueryHandler = ContextTypes = None
 
 import notify_prefs
 from ai_filter import ai_filter
@@ -182,21 +192,21 @@ def _fmt_position_detail(p: dict, client=None) -> str:
 async def cmd_start(u: Update, c: ContextTypes.DEFAULT_TYPE):
     if BOT_INSTANCE and not BOT_INSTANCE.running:
         BOT_INSTANCE.start()
-        await u.message.reply_text("🚀 Bot iniciado!\n\nUsa /help para ver los comandos disponibles.")
+        await u.effective_message.reply_text("🚀 Bot iniciado!\n\nUsa /help para ver los comandos disponibles.")
     else:
-        await u.message.reply_text("ℹ️ Bot ya activo.\n/status — estado general\n/pos — posiciones")
+        await u.effective_message.reply_text("ℹ️ Bot ya activo.\n/status — estado general\n/pos — posiciones")
 
 async def cmd_stop(u: Update, c: ContextTypes.DEFAULT_TYPE):
     if BOT_INSTANCE and BOT_INSTANCE.running:
         BOT_INSTANCE.stop()
-        await u.message.reply_text("⛔ Bot detenido.")
+        await u.effective_message.reply_text("⛔ Bot detenido.")
     else:
-        await u.message.reply_text("ℹ️ Bot ya detenido.")
+        await u.effective_message.reply_text("ℹ️ Bot ya detenido.")
 
 async def cmd_pause(u: Update, c: ContextTypes.DEFAULT_TYPE):
     global _paused
     _paused = True
-    await u.message.reply_text(
+    await u.effective_message.reply_text(
         "⏸ <b>Entradas pausadas</b>\n"
         "Las posiciones abiertas siguen activas.\n"
         "Usa /resume para reanudar.",
@@ -206,11 +216,11 @@ async def cmd_pause(u: Update, c: ContextTypes.DEFAULT_TYPE):
 async def cmd_resume(u: Update, c: ContextTypes.DEFAULT_TYPE):
     global _paused
     _paused = False
-    await u.message.reply_text("▶️ <b>Entradas reanudadas</b>", parse_mode=ParseMode.HTML)
+    await u.effective_message.reply_text("▶️ <b>Entradas reanudadas</b>", parse_mode=ParseMode.HTML)
 
 async def cmd_scan(u: Update, c: ContextTypes.DEFAULT_TYPE):
     if not BOT_INSTANCE: return
-    msg = await u.message.reply_text("🔍 Escaneando mercado...")
+    msg = await u.effective_message.reply_text("🔍 Escaneando mercado...")
     try:
         from analysis_engine_bybit import scan_best_opportunities
         opps = scan_best_opportunities(BOT_INSTANCE.client, top_n=5, min_volume_usdt=5_000_000)
@@ -250,7 +260,7 @@ async def cmd_status(u: Update, c: ContextTypes.DEFAULT_TYPE):
     cb     = "🔴 ON" if risk.get("circuit_breaker") else "✅ off"
     ai_str = f"✅ {ai_s.get('approved',0)}✅ {ai_s.get('rejected',0)}🚫 ({ai_s.get('approval_rate',0):.0f}%)" if ai_s.get("enabled") else "⚫ off"
     notif_active = sum(1 for v in notify_prefs.get_all().values() if v)
-    await u.message.reply_text(
+    await u.effective_message.reply_text(
         f"<b>Bot Trading — {mode}</b>\n"
         f"{state}{pause}\n"
         f"Balance: <code>{s.get('balance_usdt',0):.2f} USDT</code>  "
@@ -271,7 +281,7 @@ async def cmd_status(u: Update, c: ContextTypes.DEFAULT_TYPE):
 async def cmd_balance(u: Update, c: ContextTypes.DEFAULT_TYPE):
     if not BOT_INSTANCE: return
     bal = BOT_INSTANCE._get_balance()
-    await u.message.reply_text(
+    await u.effective_message.reply_text(
         f"💳 <b>Balance</b>\n<code>{bal:.2f} USDT</code>",
         parse_mode=ParseMode.HTML
     )
@@ -286,7 +296,7 @@ async def cmd_pos(u: Update, c: ContextTypes.DEFAULT_TYPE):
         poss = list(BOT_INSTANCE.open_positions.values())
 
     if not poss:
-        await u.message.reply_text("📭 No hay posiciones abiertas.")
+        await u.effective_message.reply_text("📭 No hay posiciones abiertas.")
         return
 
     for p in poss:
@@ -297,7 +307,7 @@ async def cmd_pos(u: Update, c: ContextTypes.DEFAULT_TYPE):
             InlineKeyboardButton(f"❌ Cerrar {sym}", callback_data=f"close:{sym}"),
             InlineKeyboardButton("🔄 Actualizar", callback_data=f"refresh:{sym}"),
         ]])
-        await u.message.reply_text(text, parse_mode=ParseMode.HTML, reply_markup=keyboard)
+        await u.effective_message.reply_text(text, parse_mode=ParseMode.HTML, reply_markup=keyboard)
 
 async def cmd_live(u: Update, c: ContextTypes.DEFAULT_TYPE):
     """Monitor en vivo: envía un mensaje por posición que se edita cada 30s."""
@@ -305,10 +315,10 @@ async def cmd_live(u: Update, c: ContextTypes.DEFAULT_TYPE):
     with BOT_INSTANCE._lock:
         poss = list(BOT_INSTANCE.open_positions.values())
     if not poss:
-        await u.message.reply_text("📭 No hay posiciones abiertas para monitorear.")
+        await u.effective_message.reply_text("📭 No hay posiciones abiertas para monitorear.")
         return
 
-    await u.message.reply_text(
+    await u.effective_message.reply_text(
         f"📡 <b>Monitor en vivo activado</b>\n"
         f"{len(poss)} posición(es) — se actualiza cada 30s\n"
         f"Usa /pos para ver el estado actual.",
@@ -427,12 +437,12 @@ async def cmd_pnl(u: Update, c: ContextTypes.DEFAULT_TYPE):
         f"<b>TOTAL GLOBAL</b>",
         f"<code>{_pnl_str(grand)} USDT</code>  {_pnl_emoji(grand)}",
     ]
-    await u.message.reply_text("\n".join(lines), parse_mode=ParseMode.HTML)
+    await u.effective_message.reply_text("\n".join(lines), parse_mode=ParseMode.HTML)
 
 async def cmd_daily(u: Update, c: ContextTypes.DEFAULT_TYPE):
     days_data = ai_memory.get_daily_pnl(days=14)
     if not days_data:
-        await u.message.reply_text("Sin datos de trades cerrados aún.")
+        await u.effective_message.reply_text("Sin datos de trades cerrados aún.")
         return
     lines = ["<b>📅 PnL por día (14 días)</b>\n"]
     for d in days_data:
@@ -448,7 +458,7 @@ async def cmd_daily(u: Update, c: ContextTypes.DEFAULT_TYPE):
         )
     total = sum(d.get("pnl") or 0 for d in days_data)
     lines.append(f"\n<b>Total: <code>{_pnl_str(total)} USDT</code></b>")
-    await u.message.reply_text("\n".join(lines), parse_mode=ParseMode.HTML)
+    await u.effective_message.reply_text("\n".join(lines), parse_mode=ParseMode.HTML)
 
 
 # ── TRADES ────────────────────────────────────────────────────────────────────
@@ -456,10 +466,10 @@ async def cmd_daily(u: Update, c: ContextTypes.DEFAULT_TYPE):
 async def cmd_close(u: Update, c: ContextTypes.DEFAULT_TYPE):
     if not BOT_INSTANCE: return
     if not c.args:
-        await u.message.reply_text("Uso: /close BTCUSDT")
+        await u.effective_message.reply_text("Uso: /close BTCUSDT")
         return
     sym = c.args[0].upper()
-    msg = await u.message.reply_text(f"⏳ Cerrando {sym}...")
+    msg = await u.effective_message.reply_text(f"⏳ Cerrando {sym}...")
     ok  = BOT_INSTANCE.try_close_trade(sym, reason="MANUAL_TG")
     await msg.edit_text(
         f"✅ {sym} cerrado." if ok else f"❌ Sin posición abierta en {sym}."
@@ -470,9 +480,9 @@ async def cmd_closeall(u: Update, c: ContextTypes.DEFAULT_TYPE):
     with BOT_INSTANCE._lock:
         n = len(BOT_INSTANCE.open_positions)
     if n == 0:
-        await u.message.reply_text("ℹ️ No hay posiciones abiertas.")
+        await u.effective_message.reply_text("ℹ️ No hay posiciones abiertas.")
         return
-    msg = await u.message.reply_text(f"⏳ Cerrando {n} posición(es)...")
+    msg = await u.effective_message.reply_text(f"⏳ Cerrando {n} posición(es)...")
     BOT_INSTANCE.force_close_all()
     await msg.edit_text("🔴 Todas las posiciones cerradas.")
 
@@ -505,7 +515,7 @@ async def cmd_perf(u: Update, c: ContextTypes.DEFAULT_TYPE):
             wr   = v["wins"]/v["trades"]*100 if v["trades"] else 0
             spnl = v["total_pnl"]
             lines.append(f"  {s:15s} {v['trades']}t WR={wr:.0f}% {_pnl_str(spnl)} {_pnl_emoji(spnl)}")
-    await u.message.reply_text("\n".join(lines), parse_mode=ParseMode.HTML)
+    await u.effective_message.reply_text("\n".join(lines), parse_mode=ParseMode.HTML)
 
 async def cmd_signals(u: Update, c: ContextTypes.DEFAULT_TYPE):
     """
@@ -552,7 +562,7 @@ async def cmd_signals(u: Update, c: ContextTypes.DEFAULT_TYPE):
         rows = []
 
     if not rows and not sym_stats:
-        await u.message.reply_text("Sin suficientes datos aún. Los análisis aparecen después de cerrar trades.")
+        await u.effective_message.reply_text("Sin suficientes datos aún. Los análisis aparecen después de cerrar trades.")
         return
 
     # Agrupar por símbolo
@@ -591,7 +601,7 @@ async def cmd_signals(u: Update, c: ContextTypes.DEFAULT_TYPE):
     results.sort(key=lambda x: (-x[1], -x[2]))  # Ordenar por WR desc, luego trades
 
     if not results:
-        await u.message.reply_text(
+        await u.effective_message.reply_text(
             f"No hay señales con WR ≥ {min_wr:.0f}%\n"
             f"Prueba con /signals 0 para ver todas."
         )
@@ -629,7 +639,7 @@ async def cmd_signals(u: Update, c: ContextTypes.DEFAULT_TYPE):
             f"   Mejor modo: {best_mode}  |  Cierre: {best_close}\n"
             f"   🔍 {why}"
         )
-    await u.message.reply_text("\n\n".join(lines), parse_mode=ParseMode.HTML)
+    await u.effective_message.reply_text("\n\n".join(lines), parse_mode=ParseMode.HTML)
 
 async def cmd_news(u: Update, c: ContextTypes.DEFAULT_TYPE):
     if not BOT_INSTANCE: return
@@ -663,7 +673,7 @@ async def cmd_news(u: Update, c: ContextTypes.DEFAULT_TYPE):
                 f"{e} <code>{s:+.2f}</code> hace {age}m [{item.get('source','')}]\n"
                 f"   {item.get('title','')[:90]}"
             )
-    await u.message.reply_text("\n".join(lines), parse_mode=ParseMode.HTML)
+    await u.effective_message.reply_text("\n".join(lines), parse_mode=ParseMode.HTML)
 
 async def cmd_fg(u: Update, c: ContextTypes.DEFAULT_TYPE):
     if not BOT_INSTANCE: return
@@ -676,7 +686,7 @@ async def cmd_fg(u: Update, c: ContextTypes.DEFAULT_TYPE):
     interp = ("Mercado pesimista → posible oportunidad" if v<30
               else "Neutral → seguir señales técnicas" if v<60
               else "Euforia → precaución")
-    await u.message.reply_text(
+    await u.effective_message.reply_text(
         f"<b>Fear & Greed</b>\n\n<code>[{bar}]</code> {v}/100\n{label}\n\n{interp}",
         parse_mode=ParseMode.HTML
     )
@@ -687,7 +697,7 @@ async def cmd_fg(u: Update, c: ContextTypes.DEFAULT_TYPE):
 async def cmd_ai(u: Update, c: ContextTypes.DEFAULT_TYPE):
     s = ai_filter.get_stats()
     if not s["enabled"]:
-        await u.message.reply_text(
+        await u.effective_message.reply_text(
             "🤖 <b>AI Filter</b>\nEstado: ⚫ Desactivado\n\n"
             "Añade en .env:\n<code>DEEPSEEK_API_KEY=sk-xxx</code>\n"
             "<code>AI_FILTER_ENABLED=true</code>",
@@ -695,7 +705,7 @@ async def cmd_ai(u: Update, c: ContextTypes.DEFAULT_TYPE):
         )
         return
     bar = _bar10(s["approval_rate"], 100)
-    await u.message.reply_text(
+    await u.effective_message.reply_text(
         f"🤖 <b>AI Filter — DeepSeek</b>  ✅ Activo\n\n"
         f"Consultas: <code>{s['calls']}</code>  Cache: <code>{s['cache_hits']}</code>\n"
         f"✅ Aprobados:  <code>{s['approved']}</code>\n"
@@ -715,7 +725,7 @@ async def cmd_aihist(u: Update, c: ContextTypes.DEFAULT_TYPE):
     filtro = c.args[0].lower() if c.args else "all"
     decisions = ai_memory.get_recent_decisions(limit=15)
     if not decisions:
-        await u.message.reply_text("Sin decisiones registradas aún.")
+        await u.effective_message.reply_text("Sin decisiones registradas aún.")
         return
 
     filtered = [d for d in decisions if
@@ -752,14 +762,14 @@ async def cmd_aihist(u: Update, c: ContextTypes.DEFAULT_TYPE):
             f"   📝 <i>\"{reas}\"</i>"
             f"{out_str}"
         )
-    await u.message.reply_text("\n\n".join(lines), parse_mode=ParseMode.HTML)
+    await u.effective_message.reply_text("\n\n".join(lines), parse_mode=ParseMode.HTML)
 
 async def cmd_accuracy(u: Update, c: ContextTypes.DEFAULT_TYPE):
     filter_sym = c.args[0].upper() if c.args else None
     gen = ai_memory.get_ai_accuracy(filter_sym)
     total = gen.get("total", 0)
     if not total:
-        await u.message.reply_text(
+        await u.effective_message.reply_text(
             "Sin suficientes datos.\n<i>/accuracy BTCUSDT para un par específico</i>",
             parse_mode=ParseMode.HTML
         )
@@ -789,14 +799,14 @@ async def cmd_accuracy(u: Update, c: ContextTypes.DEFAULT_TYPE):
         "",
         "<i>/accuracy BTCUSDT para ver por par</i>",
     ]
-    await u.message.reply_text("\n".join(lines), parse_mode=ParseMode.HTML)
+    await u.effective_message.reply_text("\n".join(lines), parse_mode=ParseMode.HTML)
 
 
 # ── NOTIFICACIONES ────────────────────────────────────────────────────────────
 
 async def cmd_notifs(u: Update, c: ContextTypes.DEFAULT_TYPE):
     """Menú interactivo para activar/desactivar notificaciones por categoría."""
-    await _send_notifs_menu(u.message.reply_text, u.effective_chat.id)
+    await _send_notifs_menu(u.effective_message.reply_text, u.effective_chat.id)
 
 async def _send_notifs_menu(reply_fn, chat_id):
     prefs = notify_prefs.get_all()
@@ -832,12 +842,12 @@ async def cmd_params(u: Update, c: ContextTypes.DEFAULT_TYPE):
     for k, v in params.items():
         if k not in skip:
             lines.append(f"  <code>{k}</code>: <code>{v}</code>")
-    await u.message.reply_text("\n".join(lines), parse_mode=ParseMode.HTML)
+    await u.effective_message.reply_text("\n".join(lines), parse_mode=ParseMode.HTML)
 
 async def cmd_set(u: Update, c: ContextTypes.DEFAULT_TYPE):
     if not BOT_INSTANCE: return
     if not c.args or len(c.args) < 2:
-        await u.message.reply_text(
+        await u.effective_message.reply_text(
             "Uso: /set KEY VALUE\n\n"
             "Ejemplos:\n/set min_score_long 3.5\n"
             "/set default_leverage 15\n/set risk_pct_per_trade 1.5"
@@ -848,30 +858,30 @@ async def cmd_set(u: Update, c: ContextTypes.DEFAULT_TYPE):
     except: val = {"true":True,"false":False}.get(raw.lower(), raw)
     BOT_INSTANCE.learner.params[key] = val
     BOT_INSTANCE.learner._save()
-    await u.message.reply_text(f"✅ <code>{key}</code> = <code>{val}</code>", parse_mode=ParseMode.HTML)
+    await u.effective_message.reply_text(f"✅ <code>{key}</code> = <code>{val}</code>", parse_mode=ParseMode.HTML)
 
 async def cmd_lev(u: Update, c: ContextTypes.DEFAULT_TYPE):
     if not BOT_INSTANCE: return
     if not c.args:
         lev = BOT_INSTANCE.learner.params.get("default_leverage", 20)
-        await u.message.reply_text(f"Leverage actual: <code>{lev}x</code>\nUso: /lev 20", parse_mode=ParseMode.HTML)
+        await u.effective_message.reply_text(f"Leverage actual: <code>{lev}x</code>\nUso: /lev 20", parse_mode=ParseMode.HTML)
         return
     try:
         lev = int(c.args[0])
         if not (1 <= lev <= 100):
-            await u.message.reply_text("❌ Leverage entre 1 y 100.")
+            await u.effective_message.reply_text("❌ Leverage entre 1 y 100.")
             return
         BOT_INSTANCE.learner.params["default_leverage"] = lev
         BOT_INSTANCE.learner._save()
-        await u.message.reply_text(f"✅ Leverage: <code>{lev}x</code>", parse_mode=ParseMode.HTML)
+        await u.effective_message.reply_text(f"✅ Leverage: <code>{lev}x</code>", parse_mode=ParseMode.HTML)
     except ValueError:
-        await u.message.reply_text("❌ Usa un número. Ej: /lev 20")
+        await u.effective_message.reply_text("❌ Usa un número. Ej: /lev 20")
 
 async def cmd_mode(u: Update, c: ContextTypes.DEFAULT_TYPE):
     if not BOT_INSTANCE: return
     params = BOT_INSTANCE.learner.get_params()
     pause_str = "⏸ PAUSADO" if _paused else "▶️ Activo"
-    await u.message.reply_text(
+    await u.effective_message.reply_text(
         f"<b>🎛 Modo de Trading</b>\n{pause_str}\n\n"
         f"<b>Umbrales:</b>\n"
         f"  ⚡ AGGRESSIVE: score ≥ <code>2.5</code>\n"
@@ -890,7 +900,7 @@ async def cmd_mode(u: Update, c: ContextTypes.DEFAULT_TYPE):
 
 async def cmd_watchlist(u: Update, c: ContextTypes.DEFAULT_TYPE):
     from bot_autonomous import FIXED_WATCHLIST
-    await u.message.reply_text(
+    await u.effective_message.reply_text(
         f"<b>📋 Watchlist ({len(FIXED_WATCHLIST)} pares)</b>\n" +
         "\n".join(f"• {s}" for s in FIXED_WATCHLIST),
         parse_mode=ParseMode.HTML
@@ -900,15 +910,15 @@ async def cmd_add(u: Update, c: ContextTypes.DEFAULT_TYPE):
     if not BOT_INSTANCE or not c.args: return
     sym = c.args[0].upper()
     if not sym.endswith("USDT"):
-        await u.message.reply_text("⚠️ Usa formato XXXUSDT (ej: DOGEUSDT)")
+        await u.effective_message.reply_text("⚠️ Usa formato XXXUSDT (ej: DOGEUSDT)")
         return
     BOT_INSTANCE.add_to_watchlist(sym)
-    await u.message.reply_text(f"✅ {sym} añadido.")
+    await u.effective_message.reply_text(f"✅ {sym} añadido.")
 
 async def cmd_remove(u: Update, c: ContextTypes.DEFAULT_TYPE):
     if not BOT_INSTANCE or not c.args: return
     BOT_INSTANCE.remove_from_watchlist(c.args[0].upper())
-    await u.message.reply_text(f"✅ {c.args[0].upper()} removido.")
+    await u.effective_message.reply_text(f"✅ {c.args[0].upper()} removido.")
 
 async def cmd_risk(u: Update, c: ContextTypes.DEFAULT_TYPE):
     if not BOT_INSTANCE: return
@@ -923,7 +933,7 @@ async def cmd_risk(u: Update, c: ContextTypes.DEFAULT_TYPE):
     )
     if r["circuit_breaker"] and r.get("circuit_until",0) > time.time():
         text += f"\nReanuda en: {int((r['circuit_until']-time.time())/60)}m"
-    await u.message.reply_text(text, parse_mode=ParseMode.HTML)
+    await u.effective_message.reply_text(text, parse_mode=ParseMode.HTML)
 
 async def cmd_help(u: Update, c: ContextTypes.DEFAULT_TYPE):
     sections = [
@@ -942,7 +952,7 @@ async def cmd_help(u: Update, c: ContextTypes.DEFAULT_TYPE):
         for cmd in cmds:
             lines.append(f"  /{cmd} — {cmd_map.get(cmd,'')}")
         lines.append("")
-    await u.message.reply_text("\n".join(lines), parse_mode=ParseMode.HTML)
+    await u.effective_message.reply_text("\n".join(lines), parse_mode=ParseMode.HTML)
 
 
 # ── Callback handler (botones inline) ─────────────────────────────────────────
