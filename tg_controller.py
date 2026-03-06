@@ -7,7 +7,7 @@ tg_controller.py v4 — Sistema completo de Telegram
 - Todos los errores de API/bot van a categoría "dev"
 - 27 comandos organizados por sección
 """
-
+import html
 import asyncio, logging, os, time, threading
 from typing import Optional, TYPE_CHECKING
 from dotenv import load_dotenv
@@ -36,6 +36,7 @@ except ImportError:
 import notify_prefs
 from ai_filter import ai_filter
 import ai_memory
+_live_tasks = {}
 
 # Importar y configurar logger avanzado
 try:
@@ -240,6 +241,25 @@ async def cmd_scan(u: Update, c: ContextTypes.DEFAULT_TYPE):
     except Exception as e:
         await msg.edit_text(f"❌ Error en scan: {e}")
 
+async def cmd_live(u: Update, c: ContextTypes.DEFAULT_TYPE):
+    if not BOT_INSTANCE: return
+    with BOT_INSTANCE._lock:
+        poss = list(BOT_INSTANCE.open_positions.values())
+    if not poss:
+        await u.effective_message.reply_text("📭 No hay posiciones abiertas.")
+        return
+
+    await u.effective_message.reply_text("📡 <b>Monitor en vivo activado...</b>", parse_mode=ParseMode.HTML)
+    
+    chat_id = u.effective_chat.id
+    # Si ya había un monitor corriendo para este usuario, lo matamos
+    if chat_id in _live_tasks:
+        _live_tasks[chat_id].cancel()
+    
+    # Creamos el nuevo y lo guardamos a salvo
+    task = asyncio.create_task(_live_updater(chat_id, c.bot))
+    _live_tasks[chat_id] = task
+
 
 # ── ESTADO ────────────────────────────────────────────────────────────────────
 
@@ -403,7 +423,7 @@ async def cmd_pnl(u: Update, c: ContextTypes.DEFAULT_TYPE):
         )
 
     # Realizado (DB)
-    summary  = ai_memory.get_pnl_summary(days=30)
+    summary  = ai_memory.get_pnl_summary(days=30) or {}
     closed   = summary.get("total_pnl") or 0
     wins     = summary.get("wins", 0)
     losses   = summary.get("losses", 0)
@@ -671,7 +691,8 @@ async def cmd_news(u: Update, c: ContextTypes.DEFAULT_TYPE):
             e   = "🟢" if d=="BULLISH" else "🔴"
             lines.append(
                 f"{e} <code>{s:+.2f}</code> hace {age}m [{item.get('source','')}]\n"
-                f"   {item.get('title','')[:90]}"
+                f"{e} <code>{s:+.2f}</code> hace {age}m [{html.escape(item.get('source',''))}]\n"
+                f"   {html.escape(item.get('title','')[:90])}"
             )
     await u.effective_message.reply_text("\n".join(lines), parse_mode=ParseMode.HTML)
 
@@ -745,7 +766,7 @@ async def cmd_aihist(u: Update, c: ContextTypes.DEFAULT_TYPE):
         sig   = d.get("signal","?")
         score = d.get("composite_score") or 0
         mode  = d.get("entry_mode","?")
-        reas  = (d.get("reasoning") or "")[:100]
+        reas  = html.escape((d.get("reasoning") or "")[:100])
         fg    = d.get("fear_greed","?")
         n_dir = d.get("news_direction","?")
         # Resultado real
@@ -766,7 +787,7 @@ async def cmd_aihist(u: Update, c: ContextTypes.DEFAULT_TYPE):
 
 async def cmd_accuracy(u: Update, c: ContextTypes.DEFAULT_TYPE):
     filter_sym = c.args[0].upper() if c.args else None
-    gen = ai_memory.get_ai_accuracy(filter_sym)
+    gen = ai_memory.get_ai_accuracy(filter_sym) or {}
     total = gen.get("total", 0)
     if not total:
         await u.effective_message.reply_text(
@@ -1096,7 +1117,7 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 log.info(f"[NOTIF] ✅ Actualización completada: {active} activas")
             except Exception as e:
                 log.error(f"[NOTIF] Error al procesar notificación: {type(e).__name__}: {e}")
-                pass  # sin cambio real
+                await q.answer("❌ Fallo al cambiar la configuración", show_alert=True)
 
     except Exception as e:
         log.error(f"[CALLBACK] ❌ ERROR NO CAPTURADO EN LÓGICA: {type(e).__name__}: {e}", exc_info=True)
