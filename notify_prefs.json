@@ -5,7 +5,7 @@
   "news": false,
   "ai_decisions": false,
   "positions": true,
-  "performance": false,
+  "performance": true,
   "risk": true,
   "dev": true
 }

@@ -46,7 +46,7 @@
       "close_price": null,
       "pnl_usdt": 0.0,
       "pnl_pct": null,
-      "result": "CANCELLED",
+      "result": "BREAKEVEN",
       "close_reason": "BOT_RESTART_CLEANUP",
       "entry_mode": "STANDARD",
       "analysis_snapshot": {
@@ -142,7 +142,7 @@
       "close_price": null,
       "pnl_usdt": 0.0,
       "pnl_pct": null,
-      "result": "CANCELLED",
+      "result": "BREAKEVEN",
       "close_reason": "BOT_RESTART_CLEANUP",
       "entry_mode": "AGGRESSIVE",
       "analysis_snapshot": {
@@ -174,7 +174,7 @@
       "close_price": null,
       "pnl_usdt": 0.0,
       "pnl_pct": null,
-      "result": "CANCELLED",
+      "result": "BREAKEVEN",
       "close_reason": "BOT_RESTART_CLEANUP",
       "entry_mode": "STANDARD",
       "analysis_snapshot": {
@@ -206,7 +206,7 @@
       "close_price": null,
       "pnl_usdt": 0.0,
       "pnl_pct": null,
-      "result": "CANCELLED",
+      "result": "BREAKEVEN",
       "close_reason": "BOT_RESTART_CLEANUP",
       "entry_mode": "STANDARD",
       "analysis_snapshot": {
@@ -238,7 +238,7 @@
       "close_price": null,
       "pnl_usdt": 0.0,
       "pnl_pct": null,
-      "result": "CANCELLED",
+      "result": "BREAKEVEN",
       "close_reason": "DUPLICATE_CLEANUP",
       "entry_mode": "STANDARD",
       "analysis_snapshot": {
@@ -270,7 +270,7 @@
       "close_price": null,
       "pnl_usdt": 0.0,
       "pnl_pct": null,
-      "result": "CANCELLED",
+      "result": "BREAKEVEN",
       "close_reason": "BOT_RESTART_CLEANUP",
       "entry_mode": "STANDARD",
       "analysis_snapshot": {
@@ -302,7 +302,7 @@
       "close_price": null,
       "pnl_usdt": 0.0,
       "pnl_pct": null,
-      "result": "CANCELLED",
+      "result": "BREAKEVEN",
       "close_reason": "BOT_RESTART_CLEANUP",
       "entry_mode": "STANDARD",
       "analysis_snapshot": {
@@ -334,7 +334,7 @@
       "close_price": null,
       "pnl_usdt": 0.0,
       "pnl_pct": null,
-      "result": "CANCELLED",
+      "result": "BREAKEVEN",
       "close_reason": "BOT_RESTART_CLEANUP",
       "entry_mode": "STANDARD",
       "analysis_snapshot": {
@@ -398,7 +398,7 @@
       "close_price": null,
       "pnl_usdt": 0.0,
       "pnl_pct": null,
-      "result": "CANCELLED",
+      "result": "BREAKEVEN",
       "close_reason": "BOT_RESTART_CLEANUP",
       "entry_mode": "STANDARD",
       "analysis_snapshot": {
@@ -430,7 +430,7 @@
       "close_price": null,
       "pnl_usdt": 0.0,
       "pnl_pct": null,
-      "result": "CANCELLED",
+      "result": "BREAKEVEN",
       "close_reason": "BOT_RESTART_CLEANUP",
       "entry_mode": "STANDARD",
       "analysis_snapshot": {
@@ -588,9 +588,9 @@
       "open_ts": 1772773391,
       "close_ts": 1772812122,
       "close_price": 0.2567,
-      "pnl_usdt": -40.55315418,
+      "pnl_usdt": 1580.7785,
       "pnl_pct": 4.288,
-      "result": "LOSS",
+      "result": "WIN",
       "close_reason": "SL",
       "entry_mode": "SYNCED",
       "analysis_snapshot": {
@@ -644,9 +644,9 @@
       "open_ts": 1772773391,
       "close_ts": 1772786735,
       "close_price": 0.31126,
-      "pnl_usdt": -417.61459448,
+      "pnl_usdt": 1287.7721,
       "pnl_pct": 7.446,
-      "result": "LOSS",
+      "result": "WIN",
       "close_reason": "SL",
       "entry_mode": "SYNCED",
       "analysis_snapshot": {
@@ -881,7 +881,7 @@
       "sl": 2009.59,
       "open_ts": 1772813774,
       "close_ts": 1772825911,
-      "close_price": 0.0,
+      "close_price": 1968.4,
       "pnl_usdt": 0.0,
       "pnl_pct": 100.0,
       "result": "BREAKEVEN",
@@ -1186,7 +1186,7 @@
       "sl": 69379.7,
       "open_ts": 1772822741,
       "close_ts": 1772825912,
-      "close_price": 0.0,
+      "close_price": 67939.7,
       "pnl_usdt": 0.0,
       "pnl_pct": 100.0,
       "result": "BREAKEVEN",
@@ -1611,6 +1611,159 @@
           "4h": -8.1
         }
       }
+    },
+    {
+      "trade_id": "sync_ETHUSDT",
+      "symbol": "ETHUSDT",
+      "side": "SHORT",
+      "entry_price": 1979.76,
+      "qty": 19.62,
+      "leverage": 20,
+      "tp": 1862.36,
+      "sl": 2021.33,
+      "open_ts": 1772830400,
+      "close_ts": null,
+      "close_price": null,
+      "pnl_usdt": null,
+      "pnl_pct": null,
+      "result": null,
+      "close_reason": null,
+      "entry_mode": "SYNCED",
+      "analysis_snapshot": {
+        "composite_score": 0.0,
+        "confidence": 0.5,
+        "signal": "SHORT",
+        "entry_mode": "SYNCED",
+        "atr": 0,
+        "squeeze": false,
+        "vol_spike": false,
+        "tf_scores": {}
+      }
+    },
+    {
+      "trade_id": "sync_ETHUSDT",
+      "symbol": "ETHUSDT",
+      "side": "SHORT",
+      "entry_price": 1979.76,
+      "qty": 19.62,
+      "leverage": 20,
+      "tp": 1862.36,
+      "sl": 2021.33,
+      "open_ts": 1772831054,
+      "close_ts": null,
+      "close_price": null,
+      "pnl_usdt": null,
+      "pnl_pct": null,
+      "result": null,
+      "close_reason": null,
+      "entry_mode": "SYNCED",
+      "analysis_snapshot": {
+        "composite_score": 0.0,
+        "confidence": 0.5,
+        "signal": "SHORT",
+        "entry_mode": "SYNCED",
+        "atr": 0,
+        "squeeze": false,
+        "vol_spike": false,
+        "tf_scores": {}
+      }
+    },
+    {
+      "trade_id": "091d952b",
+      "symbol": "SOLUSDT",
+      "side": "SHORT",
+      "entry_price": 84.855,
+      "qty": 432.1,
+      "leverage": 50,
+      "tp": 79.53,
+      "sl": 87.27,
+      "open_ts": 1772831628,
+      "close_ts": null,
+      "close_price": null,
+      "pnl_usdt": null,
+      "pnl_pct": null,
+      "result": null,
+      "close_reason": null,
+      "entry_mode": "AGGRESSIVE",
+      "analysis_snapshot": {
+        "composite_score": -2.928,
+        "confidence": 0.337,
+        "signal": "SHORT",
+        "entry_mode": "AGGRESSIVE",
+        "atr": 2.418199,
+        "squeeze": true,
+        "vol_spike": false,
+        "tf_scores": {
+          "1m": -2.4,
+          "3m": -6.5,
+          "5m": -4.1,
+          "15m": -6.5,
+          "30m": -4.0,
+          "1h": -1.435,
+          "2h": -0.5,
+          "4h": -2.6,
+          "6h": -5.5,
+          "12h": -3.7,
+          "1D": -1.8,
+          "1W": -3.1
+        }
+      }
+    },
+    {
+      "trade_id": "sync_SOLUSDT",
+      "symbol": "SOLUSDT",
+      "side": "SHORT",
+      "entry_price": 84.84,
+      "qty": 432.1,
+      "leverage": 50,
+      "tp": 79.53,
+      "sl": 86.74,
+      "open_ts": 1772831869,
+      "close_ts": null,
+      "close_price": null,
+      "pnl_usdt": null,
+      "pnl_pct": null,
+      "result": null,
+      "close_reason": null,
+      "entry_mode": "SYNCED",
+      "analysis_snapshot": {
+        "composite_score": 0.0,
+        "confidence": 0.5,
+        "signal": "SHORT",
+        "entry_mode": "SYNCED",
+        "atr": 0,
+        "squeeze": false,
+        "vol_spike": false,
+        "tf_scores": {}
+      }
+    },
+    {
+      "trade_id": "sync_ETHUSDT",
+      "symbol": "ETHUSDT",
+      "side": "SHORT",
+      "entry_price": 1979.76,
+      "qty": 19.62,
+      "leverage": 20,
+      "tp": 1862.36,
+      "sl": 2021.33,
+      "open_ts": 1772831869,
+      "close_ts": null,
+      "close_price": null,
+      "pnl_usdt": null,
+      "pnl_pct": null,
+      "result": null,
+      "close_reason": null,
+      "entry_mode": "SYNCED",
+      "analysis_snapshot": {
+        "composite_score": 0.0,
+        "confidence": 0.5,
+        "signal": "SHORT",
+        "entry_mode": "SYNCED",
+        "atr": 0,
+        "squeeze": false,
+        "vol_spike": false,
+        "tf_scores": {}
+      }
     }
   ],
   "learned_params": {
@@ -1644,21 +1797,45 @@
     "max_daily_loss_usdt": 5000
   },
   "symbol_stats": {
-    "KITEUSDT": {
+    "BARDUSDT": {
       "wins": 0,
-      "losses": 1,
-      "total_pnl": -417.61459448,
+      "losses": 0,
+      "total_pnl": 0.0,
+      "trades": 8,
+      "best": 0.0,
+      "worst": 0.0
+    },
+    "POWERUSDT": {
+      "wins": 0,
+      "losses": 0,
+      "total_pnl": 0.0,
       "trades": 1,
       "best": 0.0,
-      "worst": -417.61459448
+      "worst": 0.0
+    },
+    "ADAUSDT": {
+      "wins": 1,
+      "losses": 0,
+      "total_pnl": 1580.7785,
+      "trades": 2,
+      "best": 1580.7785,
+      "worst": 0.0
+    },
+    "KITEUSDT": {
+      "wins": 1,
+      "losses": 0,
+      "total_pnl": 1287.7721,
+      "trades": 1,
+      "best": 1287.7721,
+      "worst": 0.0
     },
     "ETHUSDT": {
       "wins": 0,
-      "losses": 1,
-      "total_pnl": -139.09119723,
-      "trades": 2,
+      "losses": 0,
+      "total_pnl": 0.0,
+      "trades": 1,
       "best": 0.0,
-      "worst": -139.09119723
+      "worst": 0.0
     },
     "BTCUSDT": {
       "wins": 0,
@@ -1672,10 +1849,22 @@
   "tf_stats": {},
   "session_pnl": 0.0,
   "mode_stats": {
-    "SYNCED": {
+    "STANDARD": {
       "wins": 0,
-      "losses": 2,
-      "total_pnl": -556.70579171,
+      "losses": 0,
+      "total_pnl": 0.0,
+      "trades": 9
+    },
+    "AGGRESSIVE": {
+      "wins": 0,
+      "losses": 0,
+      "total_pnl": 0.0,
+      "trades": 1
+    },
+    "SYNCED": {
+      "wins": 2,
+      "losses": 0,
+      "total_pnl": 2868.5505999999996,
       "trades": 4
     }
   }

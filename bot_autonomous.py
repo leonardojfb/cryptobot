@@ -517,7 +517,7 @@ class AutonomousBot:
             pnl = pnl_override
         else:
             entry = pos["entry_price"]
-            pnl = ((mark - entry) if pos["side"] == "LONG" else (entry - mark)) * pos["qty"] * pos["leverage"]
+            pnl = ((mark - entry) if pos["side"] == "LONG" else (entry - mark)) * pos["qty"]
 
         self.learner.record_close(pos["trade_id"], mark, pnl, reason)
         self.risk_mgr.on_close(sym, pnl)

@@ -151,17 +151,24 @@ def _get_live_pnl(p: dict, client=None) -> tuple:
     lev   = p.get("leverage", 1)
     side  = p.get("side", "LONG")
     mark  = entry
+    
     if client:
         try:
             mark = client.get_mark_price(p["symbol"])
         except Exception:
             pass
+            
     if entry and entry > 0:
+        # El ROE% (Porcentaje de Retorno) SÍ lleva apalancamiento
         raw_pct  = (mark - entry) / entry * 100
-        pnl_pct  = raw_pct if side == "LONG" else -raw_pct
-        pnl_usdt = (mark - entry) * qty * lev * (1 if side == "LONG" else -1)
+        pnl_pct  = (raw_pct if side == "LONG" else -raw_pct) * lev
+        
+        # El PnL en Dólares (USDT) NO lleva apalancamiento
+        diff = (mark - entry) if side == "LONG" else (entry - mark)
+        pnl_usdt = diff * qty
     else:
         pnl_pct = 0; pnl_usdt = 0
+        
     return mark, pnl_usdt, pnl_pct
 
 def _fmt_position_detail(p: dict, client=None) -> str:
@@ -420,7 +427,7 @@ async def cmd_pnl(u: Update, c: ContextTypes.DEFAULT_TYPE):
     s    = BOT_INSTANCE.get_status()
     poss = s.get("positions", [])
 
-    # No realizado
+    # 1. No realizado (Extraído en vivo de posiciones abiertas)
     unrealized = 0.0
     ur_lines   = []
     for p in poss:
@@ -431,42 +438,55 @@ async def cmd_pnl(u: Update, c: ContextTypes.DEFAULT_TYPE):
             f"<code>{_pnl_str(pnl_u)} USDT</code> ({_pnl_str(pnl_pct)}%)"
         )
 
-    # Realizado (DB)
-    summary  = ai_memory.get_pnl_summary(days=30) or {}
-    closed   = summary.get("total_pnl") or 0
-    wins     = summary.get("wins", 0)
-    losses   = summary.get("losses", 0)
-    total_t  = summary.get("total_trades", 0)
-    wr       = summary.get("win_rate", 0)
-    best_t   = summary.get("best_trade")
-    worst_t  = summary.get("worst_trade")
-    avg_win  = summary.get("avg_win")
-    avg_loss = summary.get("avg_loss")
-    pf       = summary.get("profit_factor")
-    grand    = closed + unrealized
+    # Mensaje temporal mientras le preguntamos a Bybit
+    msg = await u.effective_message.reply_text("🔄 Obteniendo historial real desde Bybit...")
 
-    lines = ["<b>💰 REPORTE PnL</b>\n",
-             "<b>No realizado (posiciones abiertas):</b>"]
-    lines += ur_lines if ur_lines else ["  Sin posiciones abiertas"]
-    lines += [
-        f"  Subtotal: <code>{_pnl_str(unrealized)} USDT</code> {_pnl_emoji(unrealized)}",
-        "",
-        "<b>Realizado últimos 30 días:</b>",
-        f"  {total_t} trades  ✅{wins} / ❌{losses}  WR: {wr:.1f}%",
-        f"  Total: <code>{_pnl_str(closed)} USDT</code> {_pnl_emoji(closed)}",
-    ]
-    if avg_win  is not None: lines.append(f"  Avg win: <code>+{avg_win:.2f}</code>")
-    if avg_loss is not None: lines.append(f"  Avg loss: <code>{avg_loss:.2f}</code>")
-    if best_t   is not None: lines.append(f"  Mejor: <code>{_pnl_str(best_t)}</code> 🏆")
-    if worst_t  is not None: lines.append(f"  Peor: <code>{_pnl_str(worst_t)}</code> 💀")
-    if pf       is not None: lines.append(f"  Profit factor: <code>{pf:.2f}</code>")
-    lines += [
-        "",
-        "━━━━━━━━━━━━━━━━━━━━",
-        f"<b>TOTAL GLOBAL</b>",
-        f"<code>{_pnl_str(grand)} USDT</code>  {_pnl_emoji(grand)}",
-    ]
-    await u.effective_message.reply_text("\n".join(lines), parse_mode=ParseMode.HTML)
+    try:
+        # 2. Realizado (Extraído DIRECTAMENTE de los servidores de Bybit)
+        real_closed = BOT_INSTANCE.client.get_closed_pnl(limit=100) # Trae los últimos 100 trades del exchange
+        
+        closed_pnl = 0.0
+        wins = 0
+        losses = 0
+        best_t = 0.0
+        worst_t = 0.0
+        
+        for t in real_closed:
+            pnl_trade = float(t.get("closedPnl", 0))
+            closed_pnl += pnl_trade
+            if pnl_trade > 0:
+                wins += 1
+            else:
+                losses += 1
+            
+            if pnl_trade > best_t: best_t = pnl_trade
+            if pnl_trade < worst_t: worst_t = pnl_trade
+            
+        total_t = len(real_closed)
+        wr = (wins / total_t * 100) if total_t > 0 else 0.0
+        
+        grand = closed_pnl + unrealized
+
+        lines = ["<b>💰 REPORTE PnL (Datos Oficiales Bybit)</b>\n",
+                 "<b>No realizado (posiciones abiertas):</b>"]
+        lines += ur_lines if ur_lines else ["  Sin posiciones abiertas"]
+        lines += [
+            f"  Subtotal: <code>{_pnl_str(unrealized)} USDT</code> {_pnl_emoji(unrealized)}",
+            "",
+            f"<b>Realizado (Últimos {total_t} trades en Bybit):</b>",
+            f"  {total_t} trades  ✅{wins} / ❌{losses}  WR: {wr:.1f}%",
+            f"  Total: <code>{_pnl_str(closed_pnl)} USDT</code> {_pnl_emoji(closed_pnl)}",
+            f"  Mejor trade: <code>{_pnl_str(best_t)}</code> 🏆",
+            f"  Peor trade: <code>{_pnl_str(worst_t)}</code> 💀",
+            "",
+            "━━━━━━━━━━━━━━━━━━━━",
+            f"<b>TOTAL GLOBAL</b>",
+            f"<code>{_pnl_str(grand)} USDT</code>  {_pnl_emoji(grand)}",
+        ]
+        await msg.edit_text("\n".join(lines), parse_mode=ParseMode.HTML)
+    
+    except Exception as e:
+        await msg.edit_text(f"❌ Error al consultar la API de Bybit: {e}")
 
 async def cmd_daily(u: Update, c: ContextTypes.DEFAULT_TYPE):
     days_data = ai_memory.get_daily_pnl(days=14)
