@@ -1,0 +1,17 @@
+# requirements_bot.txt
+# pip install -r requirements_bot.txt
+
+# HTTP y API
+requests>=2.31.0
+python-dotenv>=1.0.0
+
+# Análisis de datos
+pandas>=2.0.0
+numpy>=1.24.0
+
+# Telegram (opcional, para control remoto)
+python-telegram-bot>=20.0
+
+# Web server (opcional, para API REST)
+fastapi>=0.100.0
+uvicorn>=0.23.0
