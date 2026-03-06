@@ -34,6 +34,7 @@ except ImportError:
         ParseMode = Application = CommandHandler = CallbackQueryHandler = ContextTypes = None
 
 import notify_prefs
+from notify_prefs import is_enabled
 from ai_filter import ai_filter
 import ai_memory
 _live_tasks = {}
@@ -102,18 +103,26 @@ def set_bot(bot):
 
 # ── Envío con filtro de preferencias ─────────────────────────────────────────
 
-def notify(category: str, text: str, parse_mode: str = "HTML"):
+async def notify(msg: str, category: str = "general"):
     """
     Envía un mensaje solo si la categoría está habilitada en las prefs.
     Usar en bot_autonomous en lugar de self.tg.send() directamente.
     """
-    if BOT_INSTANCE and notify_prefs.is_enabled(category):
-        BOT_INSTANCE.tg.send(text)
+    # 1. Filtro de seguridad: Si la categoría está desactivada, cancelamos el envío
+    if not is_enabled(category):
+        log.info(f"[NOTIFY] Mensaje silenciado por preferencias de usuario (Cat: {category})")
+        return
+
+    # 2. Si pasó el filtro, enviamos el mensaje
+    if not BOT_INSTANCE or not BOT_INSTANCE.tg:
+        return
+    BOT_INSTANCE.tg.send(msg)
 
 
 def notify_dev(text: str):
     """Errores, fallos de API, debug — solo si 'dev' está habilitado."""
-    notify("dev", f"🔧 <b>DEV</b>\n{text}")
+    if is_enabled("dev"):
+        BOT_INSTANCE.tg.send(f"🔧 <b>DEV</b>\n{text}")
 
 
 # ── Utilidades de formato ──────────────────────────────────────────────────────
@@ -1069,26 +1078,21 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             log.info(f"[STOPLIVE] Usuario {user_id} detuvo monitor live")
             await q.edit_message_text("⏹ Monitor en vivo detenido.")
 
-        # ── Toggle notificación ───────────────────────────────────────────────
+        # ── Toggle notificación ───────────────────────────────────────────────────────────────────────────────────────
         elif data.startswith("notif:"):
             cat = data[6:]
             log.info(f"[NOTIF] Usuario {user_id} cambió preferencia: {cat}")
 
             try:
                 if cat == "_all_on":
-                    log.debug(f"[NOTIF] Activando TODAS las notificaciones")
                     for k in notify_prefs.DEFAULTS:
                         notify_prefs.set_pref(k, True)
                 elif cat == "_all_off":
-                    log.debug(f"[NOTIF] Desactivando TODAS las notificaciones")
                     for k in notify_prefs.DEFAULTS:
                         notify_prefs.set_pref(k, False)
                 else:
-                    log.debug(f"[NOTIF] Toggle categoría: {cat}")
                     notify_prefs.toggle(cat)
                 
-                log.debug(f"[NOTIF] Obteniendo estado actual de preferencias")
-                # Redibujar el menú completo con estado actualizado
                 prefs    = notify_prefs.get_all()
                 active   = sum(1 for v in prefs.values() if v)
                 inactive = len(prefs) - active
@@ -1101,23 +1105,35 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
                         f"{btn_ico} {desc}",
                         callback_data=f"notif:{cat_k}"
                     )])
+                
                 rows.append([
-                    InlineKeyboardButton("✅ Activar todo",    callback_data="notif:_all_on"),
+                    InlineKeyboardButton("✅ Activar todo", callback_data="notif:_all_on"),
                     InlineKeyboardButton("🔕 Desactivar todo", callback_data="notif:_all_off"),
                 ])
 
-                log.debug(f"[NOTIF] Editando mensaje con nuevo estado: {active} activas, {inactive} desactivadas")
-                await q.edit_message_text(
+                # TRUCO MÁGICO: La hora obliga a Telegram a aceptar el redibujado de la pantalla
+                hora_actual = time.strftime('%H:%M:%S')
+                nuevo_texto = (
                     f"<b>🔔 Notificaciones en tiempo real</b>\n"
                     f"{active} activas / {inactive} desactivadas\n\n"
-                    f"Toca para activar/desactivar cada tipo:",
+                    f"Toca para activar/desactivar cada tipo:\n"
+                    f"<i>(Actualizado: {hora_actual})</i>"
+                )
+
+                await q.edit_message_text(
+                    text=nuevo_texto,
                     parse_mode=ParseMode.HTML,
                     reply_markup=InlineKeyboardMarkup(rows)
                 )
-                log.info(f"[NOTIF] ✅ Actualización completada: {active} activas")
+                log.info(f"[NOTIF] ✅ Menú actualizado en pantalla")
+
             except Exception as e:
-                log.error(f"[NOTIF] Error al procesar notificación: {type(e).__name__}: {e}")
-                await q.answer("❌ Fallo al cambiar la configuración", show_alert=True)
+                log.error(f"[NOTIF] Error al procesar notificación: {e}")
+                # En vez de 'pass', le decimos al bot que envíe el error al chat
+                await context.bot.send_message(
+                    chat_id=q.message.chat_id,
+                    text=f"❌ Error interno al tocar el botón: {e}"
+                )
 
     except Exception as e:
         log.error(f"[CALLBACK] ❌ ERROR NO CAPTURADO EN LÓGICA: {type(e).__name__}: {e}", exc_info=True)

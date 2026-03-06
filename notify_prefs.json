@@ -1,0 +1,11 @@
+{
+  "trades": true,
+  "signals": false,
+  "analysis": false,
+  "news": false,
+  "ai_decisions": false,
+  "positions": true,
+  "performance": false,
+  "risk": true,
+  "dev": true
+}

@@ -16183,3 +16183,938 @@ telegram.error.NetworkError: httpx.ConnectError: [Errno 11001] getaddrinfo faile
 2026-03-06 17:17:20,347 [INFO] main — ⛔ Deteniendo...
 2026-03-06 17:17:20,347 [INFO] bot — ⛔ Bot detenido
 2026-03-06 17:17:20,347 [INFO] main — Bot detenido.
+2026-03-06 17:26:05,688 [INFO] main — ============================================================
+2026-03-06 17:26:05,688 [INFO] main —   BOT AUTÓNOMO — BYBIT PAPER TRADING  v3
+2026-03-06 17:26:05,689 [INFO] main — ============================================================
+2026-03-06 17:26:05,689 [INFO] main — Modo: PAPER (api-demo.bybit.com)
+2026-03-06 17:26:06,336 [INFO] ai_memory — ✅ ai_memory.db inicializada en ai_memory.db
+2026-03-06 17:26:06,336 [INFO] ai_filter — AIFilter ✅ Activo model=deepseek-chat
+2026-03-06 17:26:06,683 [INFO] notify_prefs — notify_prefs cargadas: 4/9 activas
+2026-03-06 17:26:06,686 [INFO] tg_controller — ======================================================================
+2026-03-06 17:26:06,687 [INFO] tg_controller — TELEGRAM BOT LOGGING INICIALIZADO
+2026-03-06 17:26:06,687 [INFO] tg_controller — Fecha/Hora: 2026-03-06 17:26:06
+2026-03-06 17:26:06,688 [INFO] tg_controller — Logs completos: logs\telegram_full.log
+2026-03-06 17:26:06,688 [INFO] tg_controller — Solo errores: logs\telegram_errors.log
+2026-03-06 17:26:06,689 [INFO] tg_controller — ======================================================================
+2026-03-06 17:26:06,692 [INFO] bybit_client — BybitClient → DEMO (api-demo.bybit.com)
+2026-03-06 17:26:06,692 [INFO] bybit_client — API Key: zUCvRj...0KEa
+2026-03-06 17:26:06,694 [INFO] learning_engine — LearningEngine v2 — 14 trades cerrados en historial
+2026-03-06 17:26:06,695 [INFO] bot — TelegramNotifier activo
+2026-03-06 17:26:06,695 [INFO] news_engine — NewsEngine iniciado — scan cada 120s
+2026-03-06 17:26:08,112 [INFO] bot — 📡 Nueva posición detectada: BTCUSDT SHORT @ 67939.7
+2026-03-06 17:26:08,117 [INFO] bot — 📡 Nueva posición detectada: ETHUSDT SHORT @ 1971.65
+2026-03-06 17:26:08,120 [INFO] bot — 📡 Nueva posición detectada: SOLUSDT SHORT @ 84.98
+2026-03-06 17:26:08,124 [INFO] bot — Posiciones sync: ['BTCUSDT', 'ETHUSDT', 'SOLUSDT']
+2026-03-06 17:26:09,227 [INFO] bot — ✅ Telegram OK → chat_id=8172390917
+2026-03-06 17:26:09,229 [INFO] bot — Bot iniciado — 🟡 PAPER — ['BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'BNBUSDT', 'XRPUSDT']
+2026-03-06 17:26:09,885 [INFO] main — ✅ Datos de mercado OK — BTC: 67,904.37 USDT
+2026-03-06 17:26:10,273 [INFO] bybit_client — ✅ Autenticación API verificada OK
+2026-03-06 17:26:10,655 [INFO] main — ✅ Auth OK — Balance USDT disponible: 52,101.90
+2026-03-06 17:26:10,656 [INFO] main — ✅ Telegram controller iniciado
+2026-03-06 17:26:10,656 [INFO] tg_controller — [INIT] Iniciando Telegram bot controller...
+2026-03-06 17:26:10,657 [INFO] news_engine — 📰 Escaneando noticias...
+2026-03-06 17:26:10,657 [INFO] news_engine — NewsEngine background thread iniciado
+2026-03-06 17:26:10,657 [INFO] tg_controller — [INIT] BOT_INSTANCE asignado correctamente
+2026-03-06 17:26:10,658 [INFO] bot — Escáner iniciado
+2026-03-06 17:26:10,683 [INFO] bot — Monitor iniciado
+2026-03-06 17:26:10,683 [INFO] bot — 🚀 Bot autónomo en marcha
+2026-03-06 17:26:10,686 [INFO] main — 🚀 Bot activo | Watchlist: BTCUSDT,ETHUSDT,SOLUSDT,BNBUSDT,XRPUSDT
+2026-03-06 17:26:10,686 [INFO] main —    TFs analizados: 1m 3m 5m 15m 30m 1h 2h 4h 6h 12h 1D 1W (12 TFs)
+2026-03-06 17:26:10,686 [INFO] main —    Scan: 30s | Monitor: 10s
+2026-03-06 17:26:11,388 [INFO] tg_controller — [INIT] Registrando 30 comandos...
+2026-03-06 17:26:11,389 [INFO] tg_controller — [INIT] Registrando CallbackQueryHandler para botones inline
+2026-03-06 17:26:11,389 [INFO] tg_controller — ✅ Telegram bot iniciado — 30 comandos + inline buttons
+2026-03-06 17:26:11,390 [INFO] tg_controller — [INIT] ⏳ Polling iniciado - esperando mensajes y interacciones de usuarios...
+2026-03-06 17:26:12,164 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot7279484602:AAFUiP9txeD4_8-Bc_sudk7DJbP7gUcS9Eg/getMe "HTTP/1.1 200 OK"
+2026-03-06 17:26:12,236 [INFO] main — ✅ | Bal: 52101.90 USDT | Pos: 3 | Trades: 14 | WR: 0.0% | PnL: -458.17 USDT
+2026-03-06 17:26:12,556 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot7279484602:AAFUiP9txeD4_8-Bc_sudk7DJbP7gUcS9Eg/setMyCommands "HTTP/1.1 200 OK"
+2026-03-06 17:26:12,558 [INFO] tg_controller — ✅ 30 comandos registrados en BotFather
+2026-03-06 17:26:12,817 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot7279484602:AAFUiP9txeD4_8-Bc_sudk7DJbP7gUcS9Eg/deleteWebhook "HTTP/1.1 200 OK"
+2026-03-06 17:26:12,819 [INFO] telegram.ext.Application — Application started
+2026-03-06 17:26:15,510 [INFO] news_engine — Fear & Greed: 18 — Extreme Fear
+2026-03-06 17:26:15,514 [INFO] news_engine — 📰 22 noticias nuevas | Global bias: -0.10 | Alertas: 0
+2026-03-06 17:26:17,232 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot7279484602:AAFUiP9txeD4_8-Bc_sudk7DJbP7gUcS9Eg/getUpdates "HTTP/1.1 200 OK"
+2026-03-06 17:26:17,640 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot7279484602:AAFUiP9txeD4_8-Bc_sudk7DJbP7gUcS9Eg/sendMessage "HTTP/1.1 200 OK"
+2026-03-06 17:26:23,414 [INFO] bot — 📊 BTCUSDT: FLAT   score=-1.88  conf=22%  macro=SHORT  mid=NEUTRAL  entry=SHORT  ⚡SQUEEZE
+2026-03-06 17:26:27,500 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot7279484602:AAFUiP9txeD4_8-Bc_sudk7DJbP7gUcS9Eg/getUpdates "HTTP/1.1 200 OK"
+2026-03-06 17:26:35,922 [INFO] bot — 📊 ETHUSDT: SHORT  score=-3.11  conf=36%  macro=SHORT  mid=NEUTRAL  entry=SHORT  ⚡SQUEEZE
+2026-03-06 17:26:37,773 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot7279484602:AAFUiP9txeD4_8-Bc_sudk7DJbP7gUcS9Eg/getUpdates "HTTP/1.1 200 OK"
+2026-03-06 17:26:48,125 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot7279484602:AAFUiP9txeD4_8-Bc_sudk7DJbP7gUcS9Eg/getUpdates "HTTP/1.1 200 OK"
+2026-03-06 17:26:52,428 [INFO] bot — 📊 SOLUSDT: SHORT  score=-2.61  conf=30%  macro=SHORT  mid=SHORT  entry=NEUTRAL  ⚡SQUEEZE
+2026-03-06 17:26:58,540 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot7279484602:AAFUiP9txeD4_8-Bc_sudk7DJbP7gUcS9Eg/getUpdates "HTTP/1.1 200 OK"
+2026-03-06 17:27:08,822 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot7279484602:AAFUiP9txeD4_8-Bc_sudk7DJbP7gUcS9Eg/getUpdates "HTTP/1.1 200 OK"
+2026-03-06 17:27:09,021 [INFO] bot — 📊 BNBUSDT: FLAT   score=-1.15  conf=13%  macro=NEUTRAL  mid=NEUTRAL  entry=SHORT
+2026-03-06 17:27:13,311 [INFO] main — ✅ | Bal: 52101.90 USDT | Pos: 3 | Trades: 14 | WR: 0.0% | PnL: -458.17 USDT
+2026-03-06 17:27:19,089 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot7279484602:AAFUiP9txeD4_8-Bc_sudk7DJbP7gUcS9Eg/getUpdates "HTTP/1.1 200 OK"
+2026-03-06 17:27:22,030 [INFO] bot — 📊 XRPUSDT: SHORT  score=-4.33  conf=65%  macro=SHORT  mid=SHORT  entry=SHORT  ⚡SQUEEZE
+2026-03-06 17:27:28,734 [INFO] ai_filter — 🚫 [XRPUSDT] RECHAZADO (85%) Score -4.33 muy bajo para modo AGGRESSIVE. F&G=18 Extreme Fear es riesgo para SHORT. Alineacion completa pero senal debil. [6685ms]
+2026-03-06 17:27:28,735 [INFO] bot — 🤖 AI rechazó XRPUSDT: Score -4.33 muy bajo para modo AGGRESSIVE. F&G=18 Extreme Fear es riesgo para SHORT. Alineacion completa pero senal debil. ⚠️ Score negativo muy bajo (-4.33) | Fear & Greed 18 (Extreme Fear) - riesgo de rebote violento contra SHORT | Squeeze presente sin confirmacion clara de direccion en scores [Score total negativo muy por debajo del umbral AGGRESSIVE • Contexto de Extreme Fear desfavorable para SHORT • Alineacion tecnica completa pero con senal debil en todos timeframes]
+2026-03-06 17:27:29,358 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot7279484602:AAFUiP9txeD4_8-Bc_sudk7DJbP7gUcS9Eg/getUpdates "HTTP/1.1 200 OK"
+2026-03-06 17:27:30,236 [INFO] bot — 🔍 Auto-scan mercado...
+2026-03-06 17:27:39,624 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot7279484602:AAFUiP9txeD4_8-Bc_sudk7DJbP7gUcS9Eg/getUpdates "HTTP/1.1 200 OK"
+2026-03-06 17:27:47,005 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot7279484602:AAFUiP9txeD4_8-Bc_sudk7DJbP7gUcS9Eg/getUpdates "HTTP/1.1 200 OK"
+2026-03-06 17:27:47,270 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot7279484602:AAFUiP9txeD4_8-Bc_sudk7DJbP7gUcS9Eg/getUpdates "HTTP/1.1 401 Unauthorized"
+2026-03-06 17:27:47,272 [ERROR] telegram.ext — Network Retry Loop (Polling Updates): Invalid token. Aborting retry loop.
+Traceback (most recent call last):
+  File "C:\Users\Wodahs\OneDrive\Desktop\Trading march 5\.venv\Lib\site-packages\telegram\ext\_utils\networkloop.py", line 161, in network_retry_loop
+    await do_action()
+  File "C:\Users\Wodahs\OneDrive\Desktop\Trading march 5\.venv\Lib\site-packages\telegram\ext\_utils\networkloop.py", line 154, in do_action
+    action_cb_task.result()
+    ~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Wodahs\OneDrive\Desktop\Trading march 5\.venv\Lib\site-packages\telegram\ext\_updater.py", line 340, in polling_action_cb
+    updates = await self.bot.get_updates(
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<3 lines>...
+    )
+    ^
+  File "C:\Users\Wodahs\OneDrive\Desktop\Trading march 5\.venv\Lib\site-packages\telegram\ext\_extbot.py", line 671, in get_updates
+    updates = await super().get_updates(
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<9 lines>...
+    )
+    ^
+  File "C:\Users\Wodahs\OneDrive\Desktop\Trading march 5\.venv\Lib\site-packages\telegram\_bot.py", line 4860, in get_updates
+    await self._post(
+    ^^^^^^^^^^^^^^^^^
+    ...<7 lines>...
+    ),
+    ^
+  File "C:\Users\Wodahs\OneDrive\Desktop\Trading march 5\.venv\Lib\site-packages\telegram\_bot.py", line 703, in _post
+    return await self._do_post(
+           ^^^^^^^^^^^^^^^^^^^^
+    ...<6 lines>...
+    )
+    ^
+  File "C:\Users\Wodahs\OneDrive\Desktop\Trading march 5\.venv\Lib\site-packages\telegram\ext\_extbot.py", line 369, in _do_post
+    return await super()._do_post(
+           ^^^^^^^^^^^^^^^^^^^^^^^
+    ...<6 lines>...
+    )
+    ^
+  File "C:\Users\Wodahs\OneDrive\Desktop\Trading march 5\.venv\Lib\site-packages\telegram\_bot.py", line 732, in _do_post
+    result = await request.post(
+             ^^^^^^^^^^^^^^^^^^^
+    ...<6 lines>...
+    )
+    ^
+  File "C:\Users\Wodahs\OneDrive\Desktop\Trading march 5\.venv\Lib\site-packages\telegram\request\_baserequest.py", line 198, in post
+    result = await self._request_wrapper(
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<7 lines>...
+    )
+    ^
+  File "C:\Users\Wodahs\OneDrive\Desktop\Trading march 5\.venv\Lib\site-packages\telegram\request\_baserequest.py", line 375, in _request_wrapper
+    raise exception
+telegram.error.InvalidToken: Unauthorized
+2026-03-06 17:27:53,901 [INFO] main — ⛔ Deteniendo...
+2026-03-06 17:27:53,905 [INFO] bot — ⛔ Bot detenido
+2026-03-06 17:27:53,905 [INFO] main — Bot detenido.
+2026-03-06 17:28:31,872 [INFO] main — ============================================================
+2026-03-06 17:28:31,873 [INFO] main —   BOT AUTÓNOMO — BYBIT PAPER TRADING  v3
+2026-03-06 17:28:31,873 [INFO] main — ============================================================
+2026-03-06 17:28:31,873 [INFO] main — Modo: PAPER (api-demo.bybit.com)
+2026-03-06 17:28:32,593 [INFO] ai_memory — ✅ ai_memory.db inicializada en ai_memory.db
+2026-03-06 17:28:32,594 [INFO] ai_filter — AIFilter ✅ Activo model=deepseek-chat
+2026-03-06 17:28:32,870 [INFO] notify_prefs — notify_prefs cargadas: 4/9 activas
+2026-03-06 17:28:32,873 [INFO] tg_controller — ======================================================================
+2026-03-06 17:28:32,873 [INFO] tg_controller — TELEGRAM BOT LOGGING INICIALIZADO
+2026-03-06 17:28:32,873 [INFO] tg_controller — Fecha/Hora: 2026-03-06 17:28:32
+2026-03-06 17:28:32,874 [INFO] tg_controller — Logs completos: logs\telegram_full.log
+2026-03-06 17:28:32,874 [INFO] tg_controller — Solo errores: logs\telegram_errors.log
+2026-03-06 17:28:32,874 [INFO] tg_controller — ======================================================================
+2026-03-06 17:28:32,876 [INFO] bybit_client — BybitClient → DEMO (api-demo.bybit.com)
+2026-03-06 17:28:32,876 [INFO] bybit_client — API Key: zUCvRj...0KEa
+2026-03-06 17:28:32,877 [INFO] learning_engine — LearningEngine v2 — 14 trades cerrados en historial
+2026-03-06 17:28:32,878 [INFO] bot — TelegramNotifier activo
+2026-03-06 17:28:32,878 [INFO] news_engine — NewsEngine iniciado — scan cada 120s
+2026-03-06 17:28:34,333 [INFO] bot — 📡 Nueva posición detectada: SOLUSDT SHORT @ 84.98
+2026-03-06 17:28:34,337 [INFO] bot — 📡 Nueva posición detectada: ETHUSDT SHORT @ 1971.65
+2026-03-06 17:28:34,341 [INFO] bot — 📡 Nueva posición detectada: BTCUSDT SHORT @ 67939.7
+2026-03-06 17:28:34,345 [INFO] bot — Posiciones sync: ['BTCUSDT', 'ETHUSDT', 'SOLUSDT']
+2026-03-06 17:28:37,535 [INFO] bot — ✅ Telegram OK → chat_id=8172390917
+2026-03-06 17:28:37,537 [INFO] bot — Bot iniciado — 🟡 PAPER — ['BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'BNBUSDT', 'XRPUSDT']
+2026-03-06 17:28:38,188 [INFO] main — ✅ Datos de mercado OK — BTC: 67,773.90 USDT
+2026-03-06 17:28:39,269 [INFO] bybit_client — ✅ Autenticación API verificada OK
+2026-03-06 17:28:39,645 [INFO] main — ✅ Auth OK — Balance USDT disponible: 52,101.90
+2026-03-06 17:28:39,646 [INFO] main — ✅ Telegram controller iniciado
+2026-03-06 17:28:39,646 [INFO] tg_controller — [INIT] Iniciando Telegram bot controller...
+2026-03-06 17:28:39,647 [INFO] news_engine — 📰 Escaneando noticias...
+2026-03-06 17:28:39,647 [INFO] news_engine — NewsEngine background thread iniciado
+2026-03-06 17:28:39,647 [INFO] tg_controller — [INIT] BOT_INSTANCE asignado correctamente
+2026-03-06 17:28:39,671 [INFO] bot — Escáner iniciado
+2026-03-06 17:28:39,674 [INFO] bot — Monitor iniciado
+2026-03-06 17:28:39,675 [INFO] bot — 🚀 Bot autónomo en marcha
+2026-03-06 17:28:39,676 [INFO] main — 🚀 Bot activo | Watchlist: BTCUSDT,ETHUSDT,SOLUSDT,BNBUSDT,XRPUSDT
+2026-03-06 17:28:39,676 [INFO] main —    TFs analizados: 1m 3m 5m 15m 30m 1h 2h 4h 6h 12h 1D 1W (12 TFs)
+2026-03-06 17:28:39,677 [INFO] main —    Scan: 30s | Monitor: 10s
+2026-03-06 17:28:40,460 [INFO] tg_controller — [INIT] Registrando 30 comandos...
+2026-03-06 17:28:40,460 [INFO] tg_controller — [INIT] Registrando CallbackQueryHandler para botones inline
+2026-03-06 17:28:40,461 [INFO] tg_controller — ✅ Telegram bot iniciado — 30 comandos + inline buttons
+2026-03-06 17:28:40,461 [INFO] tg_controller — [INIT] ⏳ Polling iniciado - esperando mensajes y interacciones de usuarios...
+2026-03-06 17:28:40,495 [INFO] main — ✅ | Bal: 52101.90 USDT | Pos: 3 | Trades: 14 | WR: 0.0% | PnL: -458.17 USDT
+2026-03-06 17:28:41,173 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot7279484602:AAHEmO2zdxL5JAR8oZ2HKOjVGXtWUCoXZhU/getMe "HTTP/1.1 200 OK"
+2026-03-06 17:28:41,549 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot7279484602:AAHEmO2zdxL5JAR8oZ2HKOjVGXtWUCoXZhU/setMyCommands "HTTP/1.1 200 OK"
+2026-03-06 17:28:41,550 [INFO] tg_controller — ✅ 30 comandos registrados en BotFather
+2026-03-06 17:28:41,785 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot7279484602:AAHEmO2zdxL5JAR8oZ2HKOjVGXtWUCoXZhU/deleteWebhook "HTTP/1.1 200 OK"
+2026-03-06 17:28:41,787 [INFO] telegram.ext.Application — Application started
+2026-03-06 17:28:44,697 [INFO] news_engine — Fear & Greed: 18 — Extreme Fear
+2026-03-06 17:28:44,702 [INFO] news_engine — 📰 22 noticias nuevas | Global bias: -0.10 | Alertas: 0
+2026-03-06 17:28:44,850 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot7279484602:AAHEmO2zdxL5JAR8oZ2HKOjVGXtWUCoXZhU/getUpdates "HTTP/1.1 200 OK"
+2026-03-06 17:28:45,228 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot7279484602:AAHEmO2zdxL5JAR8oZ2HKOjVGXtWUCoXZhU/sendMessage "HTTP/1.1 200 OK"
+2026-03-06 17:28:53,245 [INFO] bot — 📊 BTCUSDT: FLAT   score=-1.92  conf=24%  macro=SHORT  mid=NEUTRAL  entry=SHORT  ⚡SQUEEZE
+2026-03-06 17:28:55,085 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot7279484602:AAHEmO2zdxL5JAR8oZ2HKOjVGXtWUCoXZhU/getUpdates "HTTP/1.1 200 OK"
+2026-03-06 17:28:55,604 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot7279484602:AAHEmO2zdxL5JAR8oZ2HKOjVGXtWUCoXZhU/getUpdates "HTTP/1.1 200 OK"
+2026-03-06 17:28:55,606 [INFO] tg_controller — [CALLBACK] Botón presionado - usuario: 8172390917, data: 'notif:dev'
+2026-03-06 17:28:56,447 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot7279484602:AAHEmO2zdxL5JAR8oZ2HKOjVGXtWUCoXZhU/answerCallbackQuery "HTTP/1.1 200 OK"
+2026-03-06 17:28:56,449 [INFO] tg_controller — [CALLBACK] ✅ ANSWER ENVIADO - spinner bajo control
+2026-03-06 17:28:56,450 [INFO] tg_controller — [NOTIF] Usuario 8172390917 cambió preferencia: dev
+2026-03-06 17:28:56,817 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot7279484602:AAHEmO2zdxL5JAR8oZ2HKOjVGXtWUCoXZhU/editMessageText "HTTP/1.1 200 OK"
+2026-03-06 17:28:56,818 [INFO] tg_controller — [NOTIF] ✅ Menú actualizado en pantalla
+2026-03-06 17:29:03,113 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot7279484602:AAHEmO2zdxL5JAR8oZ2HKOjVGXtWUCoXZhU/getUpdates "HTTP/1.1 200 OK"
+2026-03-06 17:29:03,115 [INFO] tg_controller — [CALLBACK] Botón presionado - usuario: 8172390917, data: 'notif:dev'
+2026-03-06 17:29:04,003 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot7279484602:AAHEmO2zdxL5JAR8oZ2HKOjVGXtWUCoXZhU/answerCallbackQuery "HTTP/1.1 200 OK"
+2026-03-06 17:29:04,005 [INFO] tg_controller — [CALLBACK] ✅ ANSWER ENVIADO - spinner bajo control
+2026-03-06 17:29:04,005 [INFO] tg_controller — [NOTIF] Usuario 8172390917 cambió preferencia: dev
+2026-03-06 17:29:04,403 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot7279484602:AAHEmO2zdxL5JAR8oZ2HKOjVGXtWUCoXZhU/editMessageText "HTTP/1.1 200 OK"
+2026-03-06 17:29:04,408 [INFO] tg_controller — [NOTIF] ✅ Menú actualizado en pantalla
+2026-03-06 17:29:05,635 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot7279484602:AAHEmO2zdxL5JAR8oZ2HKOjVGXtWUCoXZhU/getUpdates "HTTP/1.1 200 OK"
+2026-03-06 17:29:05,656 [INFO] tg_controller — [CALLBACK] Botón presionado - usuario: 8172390917, data: 'notif:dev'
+2026-03-06 17:29:06,033 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot7279484602:AAHEmO2zdxL5JAR8oZ2HKOjVGXtWUCoXZhU/answerCallbackQuery "HTTP/1.1 200 OK"
+2026-03-06 17:29:06,034 [INFO] tg_controller — [CALLBACK] ✅ ANSWER ENVIADO - spinner bajo control
+2026-03-06 17:29:06,034 [INFO] tg_controller — [NOTIF] Usuario 8172390917 cambió preferencia: dev
+2026-03-06 17:29:06,434 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot7279484602:AAHEmO2zdxL5JAR8oZ2HKOjVGXtWUCoXZhU/editMessageText "HTTP/1.1 200 OK"
+2026-03-06 17:29:06,447 [INFO] tg_controller — [NOTIF] ✅ Menú actualizado en pantalla
+2026-03-06 17:29:06,486 [INFO] bot — 📊 ETHUSDT: SHORT  score=-3.52  conf=40%  macro=SHORT  mid=NEUTRAL  entry=SHORT  ⚡SQUEEZE
+2026-03-06 17:29:11,809 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot7279484602:AAHEmO2zdxL5JAR8oZ2HKOjVGXtWUCoXZhU/getUpdates "HTTP/1.1 200 OK"
+2026-03-06 17:29:11,810 [INFO] tg_controller — [CALLBACK] Botón presionado - usuario: 8172390917, data: 'notif:performance'
+2026-03-06 17:29:12,673 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot7279484602:AAHEmO2zdxL5JAR8oZ2HKOjVGXtWUCoXZhU/answerCallbackQuery "HTTP/1.1 200 OK"
+2026-03-06 17:29:12,674 [INFO] tg_controller — [CALLBACK] ✅ ANSWER ENVIADO - spinner bajo control
+2026-03-06 17:29:12,674 [INFO] tg_controller — [NOTIF] Usuario 8172390917 cambió preferencia: performance
+2026-03-06 17:29:13,049 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot7279484602:AAHEmO2zdxL5JAR8oZ2HKOjVGXtWUCoXZhU/editMessageText "HTTP/1.1 200 OK"
+2026-03-06 17:29:13,051 [INFO] tg_controller — [NOTIF] ✅ Menú actualizado en pantalla
+2026-03-06 17:29:14,515 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot7279484602:AAHEmO2zdxL5JAR8oZ2HKOjVGXtWUCoXZhU/getUpdates "HTTP/1.1 200 OK"
+2026-03-06 17:29:14,517 [INFO] tg_controller — [CALLBACK] Botón presionado - usuario: 8172390917, data: 'notif:positions'
+2026-03-06 17:29:14,902 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot7279484602:AAHEmO2zdxL5JAR8oZ2HKOjVGXtWUCoXZhU/answerCallbackQuery "HTTP/1.1 200 OK"
+2026-03-06 17:29:14,925 [INFO] tg_controller — [CALLBACK] ✅ ANSWER ENVIADO - spinner bajo control
+2026-03-06 17:29:14,926 [INFO] tg_controller — [NOTIF] Usuario 8172390917 cambió preferencia: positions
+2026-03-06 17:29:15,299 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot7279484602:AAHEmO2zdxL5JAR8oZ2HKOjVGXtWUCoXZhU/editMessageText "HTTP/1.1 200 OK"
+2026-03-06 17:29:15,301 [INFO] tg_controller — [NOTIF] ✅ Menú actualizado en pantalla
+2026-03-06 17:29:19,158 [INFO] bot — 📊 SOLUSDT: SHORT  score=-2.55  conf=29%  macro=SHORT  mid=SHORT  entry=NEUTRAL  ⚡SQUEEZE
+2026-03-06 17:29:24,754 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot7279484602:AAHEmO2zdxL5JAR8oZ2HKOjVGXtWUCoXZhU/getUpdates "HTTP/1.1 200 OK"
+2026-03-06 17:29:31,630 [INFO] bot — 📊 BNBUSDT: FLAT   score=-1.20  conf=13%  macro=NEUTRAL  mid=NEUTRAL  entry=SHORT
+2026-03-06 17:29:34,984 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot7279484602:AAHEmO2zdxL5JAR8oZ2HKOjVGXtWUCoXZhU/getUpdates "HTTP/1.1 200 OK"
+2026-03-06 17:29:40,872 [INFO] main — ✅ | Bal: 52101.90 USDT | Pos: 3 | Trades: 14 | WR: 0.0% | PnL: -458.17 USDT
+2026-03-06 17:29:45,238 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot7279484602:AAHEmO2zdxL5JAR8oZ2HKOjVGXtWUCoXZhU/getUpdates "HTTP/1.1 200 OK"
+2026-03-06 17:29:45,453 [INFO] bot — 📊 XRPUSDT: SHORT  score=-4.42  conf=66%  macro=SHORT  mid=SHORT  entry=SHORT  ⚡SQUEEZE
+2026-03-06 17:29:51,055 [INFO] ai_filter — 🚫 [XRPUSDT] RECHAZADO (85%) Score -4.42 muy bajo, F&G=18 Extreme Fear favorece LONG, no SHORT. Alineacion completa pero contexto macro-emocional adverso. [5583ms]
+2026-03-06 17:29:51,056 [INFO] bot — 🤖 AI rechazó XRPUSDT: Score -4.42 muy bajo, F&G=18 Extreme Fear favorece LONG, no SHORT. Alineacion completa pero contexto macro-emocional adverso. ⚠️ Extreme Fear (18) es entorno peligroso para SHORT | Score negativo profundo (-4.42) muy por debajo del umbral AGGRESSIVE (2.5) | Noticias mixtas, ninguna directamente bearish para XRP [Fear & Greed Extreme Fear contra SHORT • Score negativo extremo • Sin historial positivo que respalde]
+2026-03-06 17:29:52,556 [INFO] bot — 🔍 Auto-scan mercado...
+2026-03-06 17:29:55,468 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot7279484602:AAHEmO2zdxL5JAR8oZ2HKOjVGXtWUCoXZhU/getUpdates "HTTP/1.1 200 OK"
+2026-03-06 17:30:05,709 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot7279484602:AAHEmO2zdxL5JAR8oZ2HKOjVGXtWUCoXZhU/getUpdates "HTTP/1.1 200 OK"
+2026-03-06 17:30:11,100 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot7279484602:AAHEmO2zdxL5JAR8oZ2HKOjVGXtWUCoXZhU/getUpdates "HTTP/1.1 200 OK"
+2026-03-06 17:30:11,102 [INFO] tg_controller — [CALLBACK] Botón presionado - usuario: 8172390917, data: 'notif:ai_decisions'
+2026-03-06 17:30:11,933 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot7279484602:AAHEmO2zdxL5JAR8oZ2HKOjVGXtWUCoXZhU/answerCallbackQuery "HTTP/1.1 200 OK"
+2026-03-06 17:30:11,935 [INFO] tg_controller — [CALLBACK] ✅ ANSWER ENVIADO - spinner bajo control
+2026-03-06 17:30:11,935 [INFO] tg_controller — [NOTIF] Usuario 8172390917 cambió preferencia: ai_decisions
+2026-03-06 17:30:12,307 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot7279484602:AAHEmO2zdxL5JAR8oZ2HKOjVGXtWUCoXZhU/editMessageText "HTTP/1.1 200 OK"
+2026-03-06 17:30:12,309 [INFO] tg_controller — [NOTIF] ✅ Menú actualizado en pantalla
+2026-03-06 17:30:21,335 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot7279484602:AAHEmO2zdxL5JAR8oZ2HKOjVGXtWUCoXZhU/getUpdates "HTTP/1.1 200 OK"
+2026-03-06 17:30:31,583 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot7279484602:AAHEmO2zdxL5JAR8oZ2HKOjVGXtWUCoXZhU/getUpdates "HTTP/1.1 200 OK"
+2026-03-06 17:30:41,823 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot7279484602:AAHEmO2zdxL5JAR8oZ2HKOjVGXtWUCoXZhU/getUpdates "HTTP/1.1 200 OK"
+2026-03-06 17:30:41,946 [INFO] main — ✅ | Bal: 52101.90 USDT | Pos: 3 | Trades: 14 | WR: 0.0% | PnL: -458.17 USDT
+2026-03-06 17:30:44,703 [INFO] news_engine — 📰 Escaneando noticias...
+2026-03-06 17:30:52,052 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot7279484602:AAHEmO2zdxL5JAR8oZ2HKOjVGXtWUCoXZhU/getUpdates "HTTP/1.1 200 OK"
+2026-03-06 17:31:02,287 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot7279484602:AAHEmO2zdxL5JAR8oZ2HKOjVGXtWUCoXZhU/getUpdates "HTTP/1.1 200 OK"
+2026-03-06 17:31:12,518 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot7279484602:AAHEmO2zdxL5JAR8oZ2HKOjVGXtWUCoXZhU/getUpdates "HTTP/1.1 200 OK"
+2026-03-06 17:31:22,755 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot7279484602:AAHEmO2zdxL5JAR8oZ2HKOjVGXtWUCoXZhU/getUpdates "HTTP/1.1 200 OK"
+2026-03-06 17:31:32,991 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot7279484602:AAHEmO2zdxL5JAR8oZ2HKOjVGXtWUCoXZhU/getUpdates "HTTP/1.1 200 OK"
+2026-03-06 17:31:43,026 [INFO] main — ✅ | Bal: 52101.90 USDT | Pos: 3 | Trades: 14 | WR: 0.0% | PnL: -458.17 USDT
+2026-03-06 17:31:43,224 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot7279484602:AAHEmO2zdxL5JAR8oZ2HKOjVGXtWUCoXZhU/getUpdates "HTTP/1.1 200 OK"
+2026-03-06 17:31:53,460 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot7279484602:AAHEmO2zdxL5JAR8oZ2HKOjVGXtWUCoXZhU/getUpdates "HTTP/1.1 200 OK"
+2026-03-06 17:32:02,410 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot7279484602:AAHEmO2zdxL5JAR8oZ2HKOjVGXtWUCoXZhU/getUpdates "HTTP/1.1 200 OK"
+2026-03-06 17:32:04,413 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot7279484602:AAHEmO2zdxL5JAR8oZ2HKOjVGXtWUCoXZhU/sendMessage "HTTP/1.1 200 OK"
+2026-03-06 17:32:05,559 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot7279484602:AAHEmO2zdxL5JAR8oZ2HKOjVGXtWUCoXZhU/sendMessage "HTTP/1.1 200 OK"
+2026-03-06 17:32:06,724 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot7279484602:AAHEmO2zdxL5JAR8oZ2HKOjVGXtWUCoXZhU/sendMessage "HTTP/1.1 200 OK"
+2026-03-06 17:32:13,408 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot7279484602:AAHEmO2zdxL5JAR8oZ2HKOjVGXtWUCoXZhU/getUpdates "HTTP/1.1 200 OK"
+2026-03-06 17:32:23,643 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot7279484602:AAHEmO2zdxL5JAR8oZ2HKOjVGXtWUCoXZhU/getUpdates "HTTP/1.1 200 OK"
+2026-03-06 17:32:33,884 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot7279484602:AAHEmO2zdxL5JAR8oZ2HKOjVGXtWUCoXZhU/getUpdates "HTTP/1.1 200 OK"
+2026-03-06 17:32:44,100 [INFO] main — ✅ | Bal: 52101.90 USDT | Pos: 3 | Trades: 14 | WR: 0.0% | PnL: -458.17 USDT
+2026-03-06 17:32:44,118 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot7279484602:AAHEmO2zdxL5JAR8oZ2HKOjVGXtWUCoXZhU/getUpdates "HTTP/1.1 200 OK"
+2026-03-06 17:32:48,613 [INFO] news_engine — 📰 Escaneando noticias...
+2026-03-06 17:32:54,361 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot7279484602:AAHEmO2zdxL5JAR8oZ2HKOjVGXtWUCoXZhU/getUpdates "HTTP/1.1 200 OK"
+2026-03-06 17:33:04,593 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot7279484602:AAHEmO2zdxL5JAR8oZ2HKOjVGXtWUCoXZhU/getUpdates "HTTP/1.1 200 OK"
+2026-03-06 17:33:14,828 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot7279484602:AAHEmO2zdxL5JAR8oZ2HKOjVGXtWUCoXZhU/getUpdates "HTTP/1.1 200 OK"
+2026-03-06 17:33:25,059 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot7279484602:AAHEmO2zdxL5JAR8oZ2HKOjVGXtWUCoXZhU/getUpdates "HTTP/1.1 200 OK"
+2026-03-06 17:33:35,293 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot7279484602:AAHEmO2zdxL5JAR8oZ2HKOjVGXtWUCoXZhU/getUpdates "HTTP/1.1 200 OK"
+2026-03-06 17:33:44,547 [INFO] main — ✅ | Bal: 52101.90 USDT | Pos: 3 | Trades: 14 | WR: 0.0% | PnL: -458.17 USDT
+2026-03-06 17:33:45,537 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot7279484602:AAHEmO2zdxL5JAR8oZ2HKOjVGXtWUCoXZhU/getUpdates "HTTP/1.1 200 OK"
+2026-03-06 17:33:55,774 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot7279484602:AAHEmO2zdxL5JAR8oZ2HKOjVGXtWUCoXZhU/getUpdates "HTTP/1.1 200 OK"
+2026-03-06 17:34:06,005 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot7279484602:AAHEmO2zdxL5JAR8oZ2HKOjVGXtWUCoXZhU/getUpdates "HTTP/1.1 200 OK"
+2026-03-06 17:34:08,781 [INFO] ai_filter — AIFilter [BCHUSDT] IA indecisa (30%) → fail-open
+2026-03-06 17:34:11,844 [INFO] bot — ✅ ABIERTO BCHUSDT SHORT @ 449.1000  TP=428.2  SL=458.6  score=-6.82
+2026-03-06 17:34:16,242 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot7279484602:AAHEmO2zdxL5JAR8oZ2HKOjVGXtWUCoXZhU/getUpdates "HTTP/1.1 200 OK"
+2026-03-06 17:34:17,051 [INFO] ai_filter — 🚫 [OPUSDT] RECHAZADO (70%) Score negativo extremo (-6.2) en modo STANDARD, F&G Extreme Fear (18) es riesgo para SHORT. Alineación completa pero score insuficiente. [5189ms]
+2026-03-06 17:34:17,052 [INFO] bot — 🤖 AI rechazó OPUSDT: Score negativo extremo (-6.2) en modo STANDARD, F&G Extreme Fear (18) es riesgo para SHORT. Alineación completa pero score insuficiente. ⚠️ Score muy negativo para modo STANDARD | Fear & Greed en Extreme Fear (riesgo de rebote) | Sin historial de par para validar [Score muy bajo vs umbral • Contexto Extreme Fear • Alineación macro-entry]
+2026-03-06 17:34:21,975 [INFO] ai_filter — 🚫 [AAVEUSDT] RECHAZADO (85%) Score muy negativo (-5.78) y F&G Extreme Fear (18) hace SHORT riesgoso. Alineacion completa pero contexto macro adverso. [4902ms]
+2026-03-06 17:34:21,975 [INFO] bot — 🤖 AI rechazó AAVEUSDT: Score muy negativo (-5.78) y F&G Extreme Fear (18) hace SHORT riesgoso. Alineacion completa pero contexto macro adverso. ⚠️ Fear & Greed en Extreme Fear (18) desfavorece SHORT | Score total (-5.78) muy por debajo del umbral STANDARD (3.5) [Score negativo extremo • Fear & Greed en contra]
+2026-03-06 17:34:26,479 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot7279484602:AAHEmO2zdxL5JAR8oZ2HKOjVGXtWUCoXZhU/getUpdates "HTTP/1.1 200 OK"
+2026-03-06 17:34:26,959 [INFO] ai_filter — AIFilter [AGLDUSDT] IA indecisa (30%) → fail-open
+2026-03-06 17:34:28,437 [WARNING] bybit_client — POST /v5/position/set-leverage [10001] buy leverage invalid
+2026-03-06 17:34:29,575 [WARNING] bybit_client — POST /v5/order/create [10001] The number of contracts exceeds maximum limit allowed: too large, order_qty:6723660000000 > max_qty:2544000000000
+2026-03-06 17:34:29,575 [ERROR] bot — Order error AGLDUSDT: The number of contracts exceeds maximum limit allowed: too large, order_qty:6723660000000 > max_qty:2544000000000
+2026-03-06 17:34:35,731 [INFO] ai_filter — 🚫 [HBARUSDT] RECHAZADO (85%) Score -5.73 muy bajo para modo STANDARD (umbral 3.5). F&G=18 Extreme Fear hace SHORT riesgoso. Alineacion completa pero fuerza tecnica insuficiente. [6137ms]
+2026-03-06 17:34:35,731 [INFO] bot — 🤖 AI rechazó HBARUSDT: Score -5.73 muy bajo para modo STANDARD (umbral 3.5). F&G=18 Extreme Fear hace SHORT riesgoso. Alineacion completa pero fuerza tecnica insuficiente. ⚠️ Score negativo muy alejado del umbral STANDARD | Fear & Greed en Extreme Fear (18) - contraproducente para SHORT | Noticias mixtas, ninguna específica de HBAR [Score técnico extremadamente bajo (-5.73) • Condición de mercado Extreme Fear desfavorable para SHORT • Falta de historial para validar estrategia]
+2026-03-06 17:34:36,713 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot7279484602:AAHEmO2zdxL5JAR8oZ2HKOjVGXtWUCoXZhU/getUpdates "HTTP/1.1 200 OK"
+2026-03-06 17:34:44,950 [INFO] main — ✅ | Bal: 52074.78 USDT | Pos: 4 | Trades: 14 | WR: 0.0% | PnL: -458.17 USDT
+2026-03-06 17:34:46,327 [INFO] main — ⛔ Deteniendo...
+2026-03-06 17:34:46,328 [INFO] bot — ⛔ Bot detenido
+2026-03-06 17:34:46,328 [INFO] main — Bot detenido.
+2026-03-06 17:38:18,718 [INFO] main — ============================================================
+2026-03-06 17:38:18,718 [INFO] main —   BOT AUTÓNOMO — BYBIT PAPER TRADING  v3
+2026-03-06 17:38:18,718 [INFO] main — ============================================================
+2026-03-06 17:38:18,718 [INFO] main — Modo: PAPER (api-demo.bybit.com)
+2026-03-06 17:38:19,509 [INFO] ai_memory — ✅ ai_memory.db inicializada en ai_memory.db
+2026-03-06 17:38:19,509 [INFO] ai_filter — AIFilter ✅ Activo model=deepseek-chat
+2026-03-06 17:38:19,827 [INFO] notify_prefs — notify_prefs cargadas: 4/9 activas
+2026-03-06 17:38:23,260 [INFO] main — ============================================================
+2026-03-06 17:38:23,260 [INFO] main —   BOT AUTÓNOMO — BYBIT PAPER TRADING  v3
+2026-03-06 17:38:23,260 [INFO] main — ============================================================
+2026-03-06 17:38:23,260 [INFO] main — Modo: PAPER (api-demo.bybit.com)
+2026-03-06 17:38:23,906 [INFO] ai_memory — ✅ ai_memory.db inicializada en ai_memory.db
+2026-03-06 17:38:23,907 [INFO] ai_filter — AIFilter ✅ Activo model=deepseek-chat
+2026-03-06 17:38:24,141 [INFO] notify_prefs — notify_prefs cargadas: 4/9 activas
+2026-03-06 17:39:22,341 [INFO] main — ============================================================
+2026-03-06 17:39:22,341 [INFO] main —   BOT AUTÓNOMO — BYBIT PAPER TRADING  v3
+2026-03-06 17:39:22,341 [INFO] main — ============================================================
+2026-03-06 17:39:22,341 [INFO] main — Modo: PAPER (api-demo.bybit.com)
+2026-03-06 17:39:23,111 [INFO] ai_memory — ✅ ai_memory.db inicializada en ai_memory.db
+2026-03-06 17:39:23,111 [INFO] ai_filter — AIFilter ✅ Activo model=deepseek-chat
+2026-03-06 17:39:23,397 [INFO] notify_prefs — notify_prefs cargadas: 4/9 activas
+2026-03-06 17:39:23,399 [INFO] tg_controller — ======================================================================
+2026-03-06 17:39:23,400 [INFO] tg_controller — TELEGRAM BOT LOGGING INICIALIZADO
+2026-03-06 17:39:23,400 [INFO] tg_controller — Fecha/Hora: 2026-03-06 17:39:23
+2026-03-06 17:39:23,400 [INFO] tg_controller — Logs completos: logs\telegram_full.log
+2026-03-06 17:39:23,400 [INFO] tg_controller — Solo errores: logs\telegram_errors.log
+2026-03-06 17:39:23,401 [INFO] tg_controller — ======================================================================
+2026-03-06 17:39:23,404 [INFO] bybit_client — BybitClient → DEMO (api-demo.bybit.com)
+2026-03-06 17:39:23,404 [INFO] bybit_client — API Key: zUCvRj...0KEa
+2026-03-06 17:39:23,406 [INFO] learning_engine — LearningEngine v2 — 14 trades cerrados en historial
+2026-03-06 17:39:23,406 [INFO] bot — TelegramNotifier activo
+2026-03-06 17:39:23,407 [INFO] news_engine — NewsEngine iniciado — scan cada 120s
+2026-03-06 17:39:25,316 [INFO] bot — ✅ Telegram OK → chat_id=8172390917
+2026-03-06 17:39:25,318 [INFO] bot — Bot iniciado — 🟡 PAPER — ['BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'BNBUSDT', 'XRPUSDT']
+2026-03-06 17:39:25,964 [INFO] main — ✅ Datos de mercado OK — BTC: 67,823.50 USDT
+2026-03-06 17:39:26,337 [INFO] bybit_client — ✅ Autenticación API verificada OK
+2026-03-06 17:39:26,711 [INFO] main — ✅ Auth OK — Balance USDT disponible: 52,278.61
+2026-03-06 17:39:26,712 [INFO] main — ✅ Telegram controller iniciado
+2026-03-06 17:39:26,712 [INFO] tg_controller — [INIT] Iniciando Telegram bot controller...
+2026-03-06 17:39:26,713 [INFO] news_engine — 📰 Escaneando noticias...
+2026-03-06 17:39:26,713 [INFO] news_engine — NewsEngine background thread iniciado
+2026-03-06 17:39:26,712 [INFO] tg_controller — [INIT] BOT_INSTANCE asignado correctamente
+2026-03-06 17:39:26,714 [INFO] bot — Escáner iniciado
+2026-03-06 17:39:26,734 [INFO] bot — Monitor iniciado
+2026-03-06 17:39:26,741 [INFO] bot — 🚀 Bot autónomo en marcha
+2026-03-06 17:39:26,742 [INFO] main — 🚀 Bot activo | Watchlist: BTCUSDT,ETHUSDT,SOLUSDT,BNBUSDT,XRPUSDT
+2026-03-06 17:39:26,742 [INFO] main —    TFs analizados: 1m 3m 5m 15m 30m 1h 2h 4h 6h 12h 1D 1W (12 TFs)
+2026-03-06 17:39:26,743 [INFO] main —    Scan: 30s | Monitor: 10s
+2026-03-06 17:39:27,519 [INFO] main — ✅ | Bal: 52278.61 USDT | Pos: 0 | Trades: 14 | WR: 0.0% | PnL: -458.17 USDT
+2026-03-06 17:39:27,555 [INFO] tg_controller — [INIT] Registrando 30 comandos...
+2026-03-06 17:39:27,556 [INFO] tg_controller — [INIT] Registrando CallbackQueryHandler para botones inline
+2026-03-06 17:39:27,556 [INFO] tg_controller — ✅ Telegram bot iniciado — 30 comandos + inline buttons
+2026-03-06 17:39:27,556 [INFO] tg_controller — [INIT] ⏳ Polling iniciado - esperando mensajes y interacciones de usuarios...
+2026-03-06 17:39:28,306 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot7279484602:AAHEmO2zdxL5JAR8oZ2HKOjVGXtWUCoXZhU/getMe "HTTP/1.1 200 OK"
+2026-03-06 17:39:28,686 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot7279484602:AAHEmO2zdxL5JAR8oZ2HKOjVGXtWUCoXZhU/setMyCommands "HTTP/1.1 200 OK"
+2026-03-06 17:39:28,687 [INFO] tg_controller — ✅ 30 comandos registrados en BotFather
+2026-03-06 17:39:28,937 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot7279484602:AAHEmO2zdxL5JAR8oZ2HKOjVGXtWUCoXZhU/deleteWebhook "HTTP/1.1 200 OK"
+2026-03-06 17:39:28,941 [INFO] telegram.ext.Application — Application started
+2026-03-06 17:39:31,800 [INFO] news_engine — Fear & Greed: 18 — Extreme Fear
+2026-03-06 17:39:31,804 [INFO] news_engine — 📰 21 noticias nuevas | Global bias: -0.11 | Alertas: 0
+2026-03-06 17:39:37,426 [INFO] bot — 📊 BTCUSDT: FLAT   score=-1.64  conf=19%  macro=SHORT  mid=NEUTRAL  entry=SHORT  ⚡SQUEEZE
+2026-03-06 17:39:39,695 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot7279484602:AAHEmO2zdxL5JAR8oZ2HKOjVGXtWUCoXZhU/getUpdates "HTTP/1.1 200 OK"
+2026-03-06 17:39:49,650 [INFO] bot — 📊 ETHUSDT: SHORT  score=-3.21  conf=48%  macro=SHORT  mid=SHORT  entry=SHORT  ⚡SQUEEZE
+2026-03-06 17:39:49,951 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot7279484602:AAHEmO2zdxL5JAR8oZ2HKOjVGXtWUCoXZhU/getUpdates "HTTP/1.1 200 OK"
+2026-03-06 17:39:51,866 [INFO] main — ============================================================
+2026-03-06 17:39:51,867 [INFO] main —   BOT AUTÓNOMO — BYBIT PAPER TRADING  v3
+2026-03-06 17:39:51,867 [INFO] main — ============================================================
+2026-03-06 17:39:51,867 [INFO] main — Modo: PAPER (api-demo.bybit.com)
+2026-03-06 17:39:52,528 [INFO] ai_memory — ✅ ai_memory.db inicializada en ai_memory.db
+2026-03-06 17:39:52,528 [INFO] ai_filter — AIFilter ✅ Activo model=deepseek-chat
+2026-03-06 17:39:52,763 [INFO] notify_prefs — notify_prefs cargadas: 4/9 activas
+2026-03-06 17:39:52,766 [INFO] tg_controller — ======================================================================
+2026-03-06 17:39:52,767 [INFO] tg_controller — TELEGRAM BOT LOGGING INICIALIZADO
+2026-03-06 17:39:52,768 [INFO] tg_controller — Fecha/Hora: 2026-03-06 17:39:52
+2026-03-06 17:39:52,768 [INFO] tg_controller — Logs completos: logs\telegram_full.log
+2026-03-06 17:39:52,769 [INFO] tg_controller — Solo errores: logs\telegram_errors.log
+2026-03-06 17:39:52,769 [INFO] tg_controller — ======================================================================
+2026-03-06 17:39:52,772 [INFO] bybit_client — BybitClient → DEMO (api-demo.bybit.com)
+2026-03-06 17:39:52,773 [INFO] bybit_client — API Key: zUCvRj...0KEa
+2026-03-06 17:39:52,774 [INFO] learning_engine — LearningEngine v2 — 14 trades cerrados en historial
+2026-03-06 17:39:52,775 [INFO] bot — TelegramNotifier activo
+2026-03-06 17:39:52,775 [INFO] news_engine — NewsEngine iniciado — scan cada 120s
+2026-03-06 17:39:54,210 [INFO] ai_filter — 🚫 [ETHUSDT] RECHAZADO (65%) Score negativo, F&G Extreme Fear (18) contra SHORT, squeeze sin confirmación clara, noticias mixtas. [4543ms]
+2026-03-06 17:39:54,211 [INFO] bot — 🤖 AI rechazó ETHUSDT: Score negativo, F&G Extreme Fear (18) contra SHORT, squeeze sin confirmación clara, noticias mixtas. ⚠️ Extreme Fear (18) es riesgo para SHORT | Score negativo (-3.21) bajo umbral | Squeeze activo sin dirección clara [Fear & Greed extremo en contra • Score técnico negativo • Contexto de squeeze]
+2026-03-06 17:39:55,192 [INFO] bot — ✅ Telegram OK → chat_id=8172390917
+2026-03-06 17:39:55,193 [INFO] bot — Bot iniciado — 🟡 PAPER — ['BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'BNBUSDT', 'XRPUSDT']
+2026-03-06 17:39:55,830 [INFO] main — ✅ Datos de mercado OK — BTC: 67,859.40 USDT
+2026-03-06 17:39:56,912 [INFO] bybit_client — ✅ Autenticación API verificada OK
+2026-03-06 17:39:57,981 [INFO] main — ✅ Auth OK — Balance USDT disponible: 52,278.61
+2026-03-06 17:39:57,982 [INFO] main — ✅ Telegram controller iniciado
+2026-03-06 17:39:57,981 [INFO] tg_controller — [INIT] Iniciando Telegram bot controller...
+2026-03-06 17:39:57,983 [INFO] news_engine — 📰 Escaneando noticias...
+2026-03-06 17:39:57,982 [INFO] tg_controller — [INIT] BOT_INSTANCE asignado correctamente
+2026-03-06 17:39:57,983 [INFO] news_engine — NewsEngine background thread iniciado
+2026-03-06 17:39:58,001 [INFO] bot — Escáner iniciado
+2026-03-06 17:39:58,004 [INFO] bot — Monitor iniciado
+2026-03-06 17:39:58,005 [INFO] bot — 🚀 Bot autónomo en marcha
+2026-03-06 17:39:58,006 [INFO] main — 🚀 Bot activo | Watchlist: BTCUSDT,ETHUSDT,SOLUSDT,BNBUSDT,XRPUSDT
+2026-03-06 17:39:58,007 [INFO] main —    TFs analizados: 1m 3m 5m 15m 30m 1h 2h 4h 6h 12h 1D 1W (12 TFs)
+2026-03-06 17:39:58,007 [INFO] main —    Scan: 30s | Monitor: 10s
+2026-03-06 17:39:58,575 [INFO] tg_controller — [INIT] Registrando 30 comandos...
+2026-03-06 17:39:58,576 [INFO] tg_controller — [INIT] Registrando CallbackQueryHandler para botones inline
+2026-03-06 17:39:58,576 [INFO] tg_controller — ✅ Telegram bot iniciado — 30 comandos + inline buttons
+2026-03-06 17:39:58,577 [INFO] tg_controller — [INIT] ⏳ Polling iniciado - esperando mensajes y interacciones de usuarios...
+2026-03-06 17:39:58,686 [INFO] main — ✅ | Bal: 52278.61 USDT | Pos: 0 | Trades: 14 | WR: 0.0% | PnL: -458.17 USDT
+2026-03-06 17:39:59,342 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot7279484602:AAHEmO2zdxL5JAR8oZ2HKOjVGXtWUCoXZhU/getMe "HTTP/1.1 200 OK"
+2026-03-06 17:39:59,718 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot7279484602:AAHEmO2zdxL5JAR8oZ2HKOjVGXtWUCoXZhU/setMyCommands "HTTP/1.1 200 OK"
+2026-03-06 17:39:59,719 [INFO] tg_controller — ✅ 30 comandos registrados en BotFather
+2026-03-06 17:39:59,972 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot7279484602:AAHEmO2zdxL5JAR8oZ2HKOjVGXtWUCoXZhU/deleteWebhook "HTTP/1.1 200 OK"
+2026-03-06 17:39:59,974 [INFO] telegram.ext.Application — Application started
+2026-03-06 17:40:00,206 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot7279484602:AAHEmO2zdxL5JAR8oZ2HKOjVGXtWUCoXZhU/getUpdates "HTTP/1.1 200 OK"
+2026-03-06 17:40:00,761 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot7279484602:AAHEmO2zdxL5JAR8oZ2HKOjVGXtWUCoXZhU/getUpdates "HTTP/1.1 409 Conflict"
+2026-03-06 17:40:00,763 [ERROR] telegram.ext.Application — No error handlers are registered, logging exception.
+Traceback (most recent call last):
+  File "C:\Users\Wodahs\OneDrive\Desktop\Trading march 5\.venv\Lib\site-packages\telegram\ext\_utils\networkloop.py", line 161, in network_retry_loop
+    await do_action()
+  File "C:\Users\Wodahs\OneDrive\Desktop\Trading march 5\.venv\Lib\site-packages\telegram\ext\_utils\networkloop.py", line 154, in do_action
+    action_cb_task.result()
+    ~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Wodahs\OneDrive\Desktop\Trading march 5\.venv\Lib\site-packages\telegram\ext\_updater.py", line 340, in polling_action_cb
+    updates = await self.bot.get_updates(
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<3 lines>...
+    )
+    ^
+  File "C:\Users\Wodahs\OneDrive\Desktop\Trading march 5\.venv\Lib\site-packages\telegram\ext\_extbot.py", line 671, in get_updates
+    updates = await super().get_updates(
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<9 lines>...
+    )
+    ^
+  File "C:\Users\Wodahs\OneDrive\Desktop\Trading march 5\.venv\Lib\site-packages\telegram\_bot.py", line 4860, in get_updates
+    await self._post(
+    ^^^^^^^^^^^^^^^^^
+    ...<7 lines>...
+    ),
+    ^
+  File "C:\Users\Wodahs\OneDrive\Desktop\Trading march 5\.venv\Lib\site-packages\telegram\_bot.py", line 703, in _post
+    return await self._do_post(
+           ^^^^^^^^^^^^^^^^^^^^
+    ...<6 lines>...
+    )
+    ^
+  File "C:\Users\Wodahs\OneDrive\Desktop\Trading march 5\.venv\Lib\site-packages\telegram\ext\_extbot.py", line 369, in _do_post
+    return await super()._do_post(
+           ^^^^^^^^^^^^^^^^^^^^^^^
+    ...<6 lines>...
+    )
+    ^
+  File "C:\Users\Wodahs\OneDrive\Desktop\Trading march 5\.venv\Lib\site-packages\telegram\_bot.py", line 732, in _do_post
+    result = await request.post(
+             ^^^^^^^^^^^^^^^^^^^
+    ...<6 lines>...
+    )
+    ^
+  File "C:\Users\Wodahs\OneDrive\Desktop\Trading march 5\.venv\Lib\site-packages\telegram\request\_baserequest.py", line 198, in post
+    result = await self._request_wrapper(
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<7 lines>...
+    )
+    ^
+  File "C:\Users\Wodahs\OneDrive\Desktop\Trading march 5\.venv\Lib\site-packages\telegram\request\_baserequest.py", line 375, in _request_wrapper
+    raise exception
+telegram.error.Conflict: Conflict: terminated by other getUpdates request; make sure that only one bot instance is running
+2026-03-06 17:40:04,267 [INFO] news_engine — Fear & Greed: 18 — Extreme Fear
+2026-03-06 17:40:04,270 [INFO] news_engine — 📰 21 noticias nuevas | Global bias: -0.11 | Alertas: 0
+2026-03-06 17:40:05,047 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot7279484602:AAHEmO2zdxL5JAR8oZ2HKOjVGXtWUCoXZhU/getUpdates "HTTP/1.1 409 Conflict"
+2026-03-06 17:40:05,048 [ERROR] telegram.ext.Application — No error handlers are registered, logging exception.
+Traceback (most recent call last):
+  File "C:\Users\Wodahs\OneDrive\Desktop\Trading march 5\.venv\Lib\site-packages\telegram\ext\_utils\networkloop.py", line 161, in network_retry_loop
+    await do_action()
+  File "C:\Users\Wodahs\OneDrive\Desktop\Trading march 5\.venv\Lib\site-packages\telegram\ext\_utils\networkloop.py", line 154, in do_action
+    action_cb_task.result()
+    ~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Wodahs\OneDrive\Desktop\Trading march 5\.venv\Lib\site-packages\telegram\ext\_updater.py", line 340, in polling_action_cb
+    updates = await self.bot.get_updates(
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<3 lines>...
+    )
+    ^
+  File "C:\Users\Wodahs\OneDrive\Desktop\Trading march 5\.venv\Lib\site-packages\telegram\ext\_extbot.py", line 671, in get_updates
+    updates = await super().get_updates(
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<9 lines>...
+    )
+    ^
+  File "C:\Users\Wodahs\OneDrive\Desktop\Trading march 5\.venv\Lib\site-packages\telegram\_bot.py", line 4860, in get_updates
+    await self._post(
+    ^^^^^^^^^^^^^^^^^
+    ...<7 lines>...
+    ),
+    ^
+  File "C:\Users\Wodahs\OneDrive\Desktop\Trading march 5\.venv\Lib\site-packages\telegram\_bot.py", line 703, in _post
+    return await self._do_post(
+           ^^^^^^^^^^^^^^^^^^^^
+    ...<6 lines>...
+    )
+    ^
+  File "C:\Users\Wodahs\OneDrive\Desktop\Trading march 5\.venv\Lib\site-packages\telegram\ext\_extbot.py", line 369, in _do_post
+    return await super()._do_post(
+           ^^^^^^^^^^^^^^^^^^^^^^^
+    ...<6 lines>...
+    )
+    ^
+  File "C:\Users\Wodahs\OneDrive\Desktop\Trading march 5\.venv\Lib\site-packages\telegram\_bot.py", line 732, in _do_post
+    result = await request.post(
+             ^^^^^^^^^^^^^^^^^^^
+    ...<6 lines>...
+    )
+    ^
+  File "C:\Users\Wodahs\OneDrive\Desktop\Trading march 5\.venv\Lib\site-packages\telegram\request\_baserequest.py", line 198, in post
+    result = await self._request_wrapper(
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<7 lines>...
+    )
+    ^
+  File "C:\Users\Wodahs\OneDrive\Desktop\Trading march 5\.venv\Lib\site-packages\telegram\request\_baserequest.py", line 375, in _request_wrapper
+    raise exception
+telegram.error.Conflict: Conflict: terminated by other getUpdates request; make sure that only one bot instance is running
+2026-03-06 17:40:06,301 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot7279484602:AAHEmO2zdxL5JAR8oZ2HKOjVGXtWUCoXZhU/getUpdates "HTTP/1.1 409 Conflict"
+2026-03-06 17:40:06,303 [ERROR] telegram.ext.Application — No error handlers are registered, logging exception.
+Traceback (most recent call last):
+  File "C:\Users\Wodahs\OneDrive\Desktop\Trading march 5\.venv\Lib\site-packages\telegram\ext\_utils\networkloop.py", line 161, in network_retry_loop
+    await do_action()
+  File "C:\Users\Wodahs\OneDrive\Desktop\Trading march 5\.venv\Lib\site-packages\telegram\ext\_utils\networkloop.py", line 154, in do_action
+    action_cb_task.result()
+    ~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Wodahs\OneDrive\Desktop\Trading march 5\.venv\Lib\site-packages\telegram\ext\_updater.py", line 340, in polling_action_cb
+    updates = await self.bot.get_updates(
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<3 lines>...
+    )
+    ^
+  File "C:\Users\Wodahs\OneDrive\Desktop\Trading march 5\.venv\Lib\site-packages\telegram\ext\_extbot.py", line 671, in get_updates
+    updates = await super().get_updates(
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<9 lines>...
+    )
+    ^
+  File "C:\Users\Wodahs\OneDrive\Desktop\Trading march 5\.venv\Lib\site-packages\telegram\_bot.py", line 4860, in get_updates
+    await self._post(
+    ^^^^^^^^^^^^^^^^^
+    ...<7 lines>...
+    ),
+    ^
+  File "C:\Users\Wodahs\OneDrive\Desktop\Trading march 5\.venv\Lib\site-packages\telegram\_bot.py", line 703, in _post
+    return await self._do_post(
+           ^^^^^^^^^^^^^^^^^^^^
+    ...<6 lines>...
+    )
+    ^
+  File "C:\Users\Wodahs\OneDrive\Desktop\Trading march 5\.venv\Lib\site-packages\telegram\ext\_extbot.py", line 369, in _do_post
+    return await super()._do_post(
+           ^^^^^^^^^^^^^^^^^^^^^^^
+    ...<6 lines>...
+    )
+    ^
+  File "C:\Users\Wodahs\OneDrive\Desktop\Trading march 5\.venv\Lib\site-packages\telegram\_bot.py", line 732, in _do_post
+    result = await request.post(
+             ^^^^^^^^^^^^^^^^^^^
+    ...<6 lines>...
+    )
+    ^
+  File "C:\Users\Wodahs\OneDrive\Desktop\Trading march 5\.venv\Lib\site-packages\telegram\request\_baserequest.py", line 198, in post
+    result = await self._request_wrapper(
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<7 lines>...
+    )
+    ^
+  File "C:\Users\Wodahs\OneDrive\Desktop\Trading march 5\.venv\Lib\site-packages\telegram\request\_baserequest.py", line 375, in _request_wrapper
+    raise exception
+telegram.error.Conflict: Conflict: terminated by other getUpdates request; make sure that only one bot instance is running
+2026-03-06 17:40:06,315 [INFO] bot — 📊 SOLUSDT: FLAT   score=-2.23  conf=26%  macro=SHORT  mid=NEUTRAL  entry=NEUTRAL  ⚡SQUEEZE
+2026-03-06 17:40:10,526 [INFO] bot — 📊 BTCUSDT: FLAT   score=-2.29  conf=26%  macro=SHORT  mid=NEUTRAL  entry=SHORT  ⚡SQUEEZE
+2026-03-06 17:40:11,078 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot7279484602:AAHEmO2zdxL5JAR8oZ2HKOjVGXtWUCoXZhU/getUpdates "HTTP/1.1 409 Conflict"
+2026-03-06 17:40:11,079 [ERROR] telegram.ext.Application — No error handlers are registered, logging exception.
+Traceback (most recent call last):
+  File "C:\Users\Wodahs\OneDrive\Desktop\Trading march 5\.venv\Lib\site-packages\telegram\ext\_utils\networkloop.py", line 161, in network_retry_loop
+    await do_action()
+  File "C:\Users\Wodahs\OneDrive\Desktop\Trading march 5\.venv\Lib\site-packages\telegram\ext\_utils\networkloop.py", line 154, in do_action
+    action_cb_task.result()
+    ~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Wodahs\OneDrive\Desktop\Trading march 5\.venv\Lib\site-packages\telegram\ext\_updater.py", line 340, in polling_action_cb
+    updates = await self.bot.get_updates(
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<3 lines>...
+    )
+    ^
+  File "C:\Users\Wodahs\OneDrive\Desktop\Trading march 5\.venv\Lib\site-packages\telegram\ext\_extbot.py", line 671, in get_updates
+    updates = await super().get_updates(
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<9 lines>...
+    )
+    ^
+  File "C:\Users\Wodahs\OneDrive\Desktop\Trading march 5\.venv\Lib\site-packages\telegram\_bot.py", line 4860, in get_updates
+    await self._post(
+    ^^^^^^^^^^^^^^^^^
+    ...<7 lines>...
+    ),
+    ^
+  File "C:\Users\Wodahs\OneDrive\Desktop\Trading march 5\.venv\Lib\site-packages\telegram\_bot.py", line 703, in _post
+    return await self._do_post(
+           ^^^^^^^^^^^^^^^^^^^^
+    ...<6 lines>...
+    )
+    ^
+  File "C:\Users\Wodahs\OneDrive\Desktop\Trading march 5\.venv\Lib\site-packages\telegram\ext\_extbot.py", line 369, in _do_post
+    return await super()._do_post(
+           ^^^^^^^^^^^^^^^^^^^^^^^
+    ...<6 lines>...
+    )
+    ^
+  File "C:\Users\Wodahs\OneDrive\Desktop\Trading march 5\.venv\Lib\site-packages\telegram\_bot.py", line 732, in _do_post
+    result = await request.post(
+             ^^^^^^^^^^^^^^^^^^^
+    ...<6 lines>...
+    )
+    ^
+  File "C:\Users\Wodahs\OneDrive\Desktop\Trading march 5\.venv\Lib\site-packages\telegram\request\_baserequest.py", line 198, in post
+    result = await self._request_wrapper(
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<7 lines>...
+    )
+    ^
+  File "C:\Users\Wodahs\OneDrive\Desktop\Trading march 5\.venv\Lib\site-packages\telegram\request\_baserequest.py", line 375, in _request_wrapper
+    raise exception
+telegram.error.Conflict: Conflict: terminated by other getUpdates request; make sure that only one bot instance is running
+2026-03-06 17:40:12,831 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot7279484602:AAHEmO2zdxL5JAR8oZ2HKOjVGXtWUCoXZhU/getUpdates "HTTP/1.1 409 Conflict"
+2026-03-06 17:40:12,832 [ERROR] telegram.ext.Application — No error handlers are registered, logging exception.
+Traceback (most recent call last):
+  File "C:\Users\Wodahs\OneDrive\Desktop\Trading march 5\.venv\Lib\site-packages\telegram\ext\_utils\networkloop.py", line 161, in network_retry_loop
+    await do_action()
+  File "C:\Users\Wodahs\OneDrive\Desktop\Trading march 5\.venv\Lib\site-packages\telegram\ext\_utils\networkloop.py", line 154, in do_action
+    action_cb_task.result()
+    ~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Wodahs\OneDrive\Desktop\Trading march 5\.venv\Lib\site-packages\telegram\ext\_updater.py", line 340, in polling_action_cb
+    updates = await self.bot.get_updates(
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<3 lines>...
+    )
+    ^
+  File "C:\Users\Wodahs\OneDrive\Desktop\Trading march 5\.venv\Lib\site-packages\telegram\ext\_extbot.py", line 671, in get_updates
+    updates = await super().get_updates(
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<9 lines>...
+    )
+    ^
+  File "C:\Users\Wodahs\OneDrive\Desktop\Trading march 5\.venv\Lib\site-packages\telegram\_bot.py", line 4860, in get_updates
+    await self._post(
+    ^^^^^^^^^^^^^^^^^
+    ...<7 lines>...
+    ),
+    ^
+  File "C:\Users\Wodahs\OneDrive\Desktop\Trading march 5\.venv\Lib\site-packages\telegram\_bot.py", line 703, in _post
+    return await self._do_post(
+           ^^^^^^^^^^^^^^^^^^^^
+    ...<6 lines>...
+    )
+    ^
+  File "C:\Users\Wodahs\OneDrive\Desktop\Trading march 5\.venv\Lib\site-packages\telegram\ext\_extbot.py", line 369, in _do_post
+    return await super()._do_post(
+           ^^^^^^^^^^^^^^^^^^^^^^^
+    ...<6 lines>...
+    )
+    ^
+  File "C:\Users\Wodahs\OneDrive\Desktop\Trading march 5\.venv\Lib\site-packages\telegram\_bot.py", line 732, in _do_post
+    result = await request.post(
+             ^^^^^^^^^^^^^^^^^^^
+    ...<6 lines>...
+    )
+    ^
+  File "C:\Users\Wodahs\OneDrive\Desktop\Trading march 5\.venv\Lib\site-packages\telegram\request\_baserequest.py", line 198, in post
+    result = await self._request_wrapper(
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<7 lines>...
+    )
+    ^
+  File "C:\Users\Wodahs\OneDrive\Desktop\Trading march 5\.venv\Lib\site-packages\telegram\request\_baserequest.py", line 375, in _request_wrapper
+    raise exception
+telegram.error.Conflict: Conflict: terminated by other getUpdates request; make sure that only one bot instance is running
+2026-03-06 17:40:18,353 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot7279484602:AAHEmO2zdxL5JAR8oZ2HKOjVGXtWUCoXZhU/getUpdates "HTTP/1.1 409 Conflict"
+2026-03-06 17:40:18,355 [ERROR] telegram.ext.Application — No error handlers are registered, logging exception.
+Traceback (most recent call last):
+  File "C:\Users\Wodahs\OneDrive\Desktop\Trading march 5\.venv\Lib\site-packages\telegram\ext\_utils\networkloop.py", line 161, in network_retry_loop
+    await do_action()
+  File "C:\Users\Wodahs\OneDrive\Desktop\Trading march 5\.venv\Lib\site-packages\telegram\ext\_utils\networkloop.py", line 154, in do_action
+    action_cb_task.result()
+    ~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Wodahs\OneDrive\Desktop\Trading march 5\.venv\Lib\site-packages\telegram\ext\_updater.py", line 340, in polling_action_cb
+    updates = await self.bot.get_updates(
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<3 lines>...
+    )
+    ^
+  File "C:\Users\Wodahs\OneDrive\Desktop\Trading march 5\.venv\Lib\site-packages\telegram\ext\_extbot.py", line 671, in get_updates
+    updates = await super().get_updates(
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<9 lines>...
+    )
+    ^
+  File "C:\Users\Wodahs\OneDrive\Desktop\Trading march 5\.venv\Lib\site-packages\telegram\_bot.py", line 4860, in get_updates
+    await self._post(
+    ^^^^^^^^^^^^^^^^^
+    ...<7 lines>...
+    ),
+    ^
+  File "C:\Users\Wodahs\OneDrive\Desktop\Trading march 5\.venv\Lib\site-packages\telegram\_bot.py", line 703, in _post
+    return await self._do_post(
+           ^^^^^^^^^^^^^^^^^^^^
+    ...<6 lines>...
+    )
+    ^
+  File "C:\Users\Wodahs\OneDrive\Desktop\Trading march 5\.venv\Lib\site-packages\telegram\ext\_extbot.py", line 369, in _do_post
+    return await super()._do_post(
+           ^^^^^^^^^^^^^^^^^^^^^^^
+    ...<6 lines>...
+    )
+    ^
+  File "C:\Users\Wodahs\OneDrive\Desktop\Trading march 5\.venv\Lib\site-packages\telegram\_bot.py", line 732, in _do_post
+    result = await request.post(
+             ^^^^^^^^^^^^^^^^^^^
+    ...<6 lines>...
+    )
+    ^
+  File "C:\Users\Wodahs\OneDrive\Desktop\Trading march 5\.venv\Lib\site-packages\telegram\request\_baserequest.py", line 198, in post
+    result = await self._request_wrapper(
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<7 lines>...
+    )
+    ^
+  File "C:\Users\Wodahs\OneDrive\Desktop\Trading march 5\.venv\Lib\site-packages\telegram\request\_baserequest.py", line 375, in _request_wrapper
+    raise exception
+telegram.error.Conflict: Conflict: terminated by other getUpdates request; make sure that only one bot instance is running
+2026-03-06 17:40:19,143 [INFO] bot — 📊 BNBUSDT: FLAT   score=-1.50  conf=15%  macro=NEUTRAL  mid=NEUTRAL  entry=SHORT
+2026-03-06 17:40:20,855 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot7279484602:AAHEmO2zdxL5JAR8oZ2HKOjVGXtWUCoXZhU/getUpdates "HTTP/1.1 409 Conflict"
+2026-03-06 17:40:20,857 [ERROR] telegram.ext.Application — No error handlers are registered, logging exception.
+Traceback (most recent call last):
+  File "C:\Users\Wodahs\OneDrive\Desktop\Trading march 5\.venv\Lib\site-packages\telegram\ext\_utils\networkloop.py", line 161, in network_retry_loop
+    await do_action()
+  File "C:\Users\Wodahs\OneDrive\Desktop\Trading march 5\.venv\Lib\site-packages\telegram\ext\_utils\networkloop.py", line 154, in do_action
+    action_cb_task.result()
+    ~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Wodahs\OneDrive\Desktop\Trading march 5\.venv\Lib\site-packages\telegram\ext\_updater.py", line 340, in polling_action_cb
+    updates = await self.bot.get_updates(
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<3 lines>...
+    )
+    ^
+  File "C:\Users\Wodahs\OneDrive\Desktop\Trading march 5\.venv\Lib\site-packages\telegram\ext\_extbot.py", line 671, in get_updates
+    updates = await super().get_updates(
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<9 lines>...
+    )
+    ^
+  File "C:\Users\Wodahs\OneDrive\Desktop\Trading march 5\.venv\Lib\site-packages\telegram\_bot.py", line 4860, in get_updates
+    await self._post(
+    ^^^^^^^^^^^^^^^^^
+    ...<7 lines>...
+    ),
+    ^
+  File "C:\Users\Wodahs\OneDrive\Desktop\Trading march 5\.venv\Lib\site-packages\telegram\_bot.py", line 703, in _post
+    return await self._do_post(
+           ^^^^^^^^^^^^^^^^^^^^
+    ...<6 lines>...
+    )
+    ^
+  File "C:\Users\Wodahs\OneDrive\Desktop\Trading march 5\.venv\Lib\site-packages\telegram\ext\_extbot.py", line 369, in _do_post
+    return await super()._do_post(
+           ^^^^^^^^^^^^^^^^^^^^^^^
+    ...<6 lines>...
+    )
+    ^
+  File "C:\Users\Wodahs\OneDrive\Desktop\Trading march 5\.venv\Lib\site-packages\telegram\_bot.py", line 732, in _do_post
+    result = await request.post(
+             ^^^^^^^^^^^^^^^^^^^
+    ...<6 lines>...
+    )
+    ^
+  File "C:\Users\Wodahs\OneDrive\Desktop\Trading march 5\.venv\Lib\site-packages\telegram\request\_baserequest.py", line 198, in post
+    result = await self._request_wrapper(
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<7 lines>...
+    )
+    ^
+  File "C:\Users\Wodahs\OneDrive\Desktop\Trading march 5\.venv\Lib\site-packages\telegram\request\_baserequest.py", line 375, in _request_wrapper
+    raise exception
+telegram.error.Conflict: Conflict: terminated by other getUpdates request; make sure that only one bot instance is running
+2026-03-06 17:40:22,953 [INFO] bot — 📊 ETHUSDT: SHORT  score=-3.37  conf=50%  macro=SHORT  mid=SHORT  entry=SHORT  ⚡SQUEEZE
+2026-03-06 17:40:24,510 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot7279484602:AAHEmO2zdxL5JAR8oZ2HKOjVGXtWUCoXZhU/getUpdates "HTTP/1.1 409 Conflict"
+2026-03-06 17:40:24,512 [ERROR] telegram.ext.Application — No error handlers are registered, logging exception.
+Traceback (most recent call last):
+  File "C:\Users\Wodahs\OneDrive\Desktop\Trading march 5\.venv\Lib\site-packages\telegram\ext\_utils\networkloop.py", line 161, in network_retry_loop
+    await do_action()
+  File "C:\Users\Wodahs\OneDrive\Desktop\Trading march 5\.venv\Lib\site-packages\telegram\ext\_utils\networkloop.py", line 154, in do_action
+    action_cb_task.result()
+    ~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Wodahs\OneDrive\Desktop\Trading march 5\.venv\Lib\site-packages\telegram\ext\_updater.py", line 340, in polling_action_cb
+    updates = await self.bot.get_updates(
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<3 lines>...
+    )
+    ^
+  File "C:\Users\Wodahs\OneDrive\Desktop\Trading march 5\.venv\Lib\site-packages\telegram\ext\_extbot.py", line 671, in get_updates
+    updates = await super().get_updates(
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<9 lines>...
+    )
+    ^
+  File "C:\Users\Wodahs\OneDrive\Desktop\Trading march 5\.venv\Lib\site-packages\telegram\_bot.py", line 4860, in get_updates
+    await self._post(
+    ^^^^^^^^^^^^^^^^^
+    ...<7 lines>...
+    ),
+    ^
+  File "C:\Users\Wodahs\OneDrive\Desktop\Trading march 5\.venv\Lib\site-packages\telegram\_bot.py", line 703, in _post
+    return await self._do_post(
+           ^^^^^^^^^^^^^^^^^^^^
+    ...<6 lines>...
+    )
+    ^
+  File "C:\Users\Wodahs\OneDrive\Desktop\Trading march 5\.venv\Lib\site-packages\telegram\ext\_extbot.py", line 369, in _do_post
+    return await super()._do_post(
+           ^^^^^^^^^^^^^^^^^^^^^^^
+    ...<6 lines>...
+    )
+    ^
+  File "C:\Users\Wodahs\OneDrive\Desktop\Trading march 5\.venv\Lib\site-packages\telegram\_bot.py", line 732, in _do_post
+    result = await request.post(
+             ^^^^^^^^^^^^^^^^^^^
+    ...<6 lines>...
+    )
+    ^
+  File "C:\Users\Wodahs\OneDrive\Desktop\Trading march 5\.venv\Lib\site-packages\telegram\request\_baserequest.py", line 198, in post
+    result = await self._request_wrapper(
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<7 lines>...
+    )
+    ^
+  File "C:\Users\Wodahs\OneDrive\Desktop\Trading march 5\.venv\Lib\site-packages\telegram\request\_baserequest.py", line 375, in _request_wrapper
+    raise exception
+telegram.error.Conflict: Conflict: terminated by other getUpdates request; make sure that only one bot instance is running
+2026-03-06 17:40:27,892 [INFO] main — ✅ | Bal: 52278.61 USDT | Pos: 0 | Trades: 14 | WR: 0.0% | PnL: -458.17 USDT
+2026-03-06 17:40:28,142 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot7279484602:AAHEmO2zdxL5JAR8oZ2HKOjVGXtWUCoXZhU/getUpdates "HTTP/1.1 409 Conflict"
+2026-03-06 17:40:28,144 [ERROR] telegram.ext.Application — No error handlers are registered, logging exception.
+Traceback (most recent call last):
+  File "C:\Users\Wodahs\OneDrive\Desktop\Trading march 5\.venv\Lib\site-packages\telegram\ext\_utils\networkloop.py", line 161, in network_retry_loop
+    await do_action()
+  File "C:\Users\Wodahs\OneDrive\Desktop\Trading march 5\.venv\Lib\site-packages\telegram\ext\_utils\networkloop.py", line 154, in do_action
+    action_cb_task.result()
+    ~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Wodahs\OneDrive\Desktop\Trading march 5\.venv\Lib\site-packages\telegram\ext\_updater.py", line 340, in polling_action_cb
+    updates = await self.bot.get_updates(
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<3 lines>...
+    )
+    ^
+  File "C:\Users\Wodahs\OneDrive\Desktop\Trading march 5\.venv\Lib\site-packages\telegram\ext\_extbot.py", line 671, in get_updates
+    updates = await super().get_updates(
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<9 lines>...
+    )
+    ^
+  File "C:\Users\Wodahs\OneDrive\Desktop\Trading march 5\.venv\Lib\site-packages\telegram\_bot.py", line 4860, in get_updates
+    await self._post(
+    ^^^^^^^^^^^^^^^^^
+    ...<7 lines>...
+    ),
+    ^
+  File "C:\Users\Wodahs\OneDrive\Desktop\Trading march 5\.venv\Lib\site-packages\telegram\_bot.py", line 703, in _post
+    return await self._do_post(
+           ^^^^^^^^^^^^^^^^^^^^
+    ...<6 lines>...
+    )
+    ^
+  File "C:\Users\Wodahs\OneDrive\Desktop\Trading march 5\.venv\Lib\site-packages\telegram\ext\_extbot.py", line 369, in _do_post
+    return await super()._do_post(
+           ^^^^^^^^^^^^^^^^^^^^^^^
+    ...<6 lines>...
+    )
+    ^
+  File "C:\Users\Wodahs\OneDrive\Desktop\Trading march 5\.venv\Lib\site-packages\telegram\_bot.py", line 732, in _do_post
+    result = await request.post(
+             ^^^^^^^^^^^^^^^^^^^
+    ...<6 lines>...
+    )
+    ^
+  File "C:\Users\Wodahs\OneDrive\Desktop\Trading march 5\.venv\Lib\site-packages\telegram\request\_baserequest.py", line 198, in post
+    result = await self._request_wrapper(
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<7 lines>...
+    )
+    ^
+  File "C:\Users\Wodahs\OneDrive\Desktop\Trading march 5\.venv\Lib\site-packages\telegram\request\_baserequest.py", line 375, in _request_wrapper
+    raise exception
+telegram.error.Conflict: Conflict: terminated by other getUpdates request; make sure that only one bot instance is running
+2026-03-06 17:40:28,278 [INFO] ai_filter — 🚫 [ETHUSDT] RECHAZADO (65%) Score negativo (-3.37) no supera umbral AGGRESSIVE (2.5). F&G Extreme Fear (18) es riesgo para SHORT. Squeeze sin direccion clara. [5304ms]
+2026-03-06 17:40:28,280 [INFO] bot — 🤖 AI rechazó ETHUSDT: Score negativo (-3.37) no supera umbral AGGRESSIVE (2.5). F&G Extreme Fear (18) es riesgo para SHORT. Squeeze sin direccion clara. ⚠️ Score negativo muy bajo | Fear & Greed en Extreme Fear (riesgo de rebote) | Squeeze activo sin confirmacion [Score negativo insuficiente • Contexto Extreme Fear desfavorable • Squeeze sin confirmacion]
+2026-03-06 17:40:31,411 [INFO] bot — 📊 XRPUSDT: SHORT  score=-4.78  conf=71%  macro=SHORT  mid=SHORT  entry=SHORT  ⚡SQUEEZE
+2026-03-06 17:40:45,426 [INFO] main — ============================================================
+2026-03-06 17:40:45,426 [INFO] main —   BOT AUTÓNOMO — BYBIT PAPER TRADING  v3
+2026-03-06 17:40:45,426 [INFO] main — ============================================================
+2026-03-06 17:40:45,427 [INFO] main — Modo: PAPER (api-demo.bybit.com)
+2026-03-06 17:40:46,197 [INFO] ai_memory — ✅ ai_memory.db inicializada en ai_memory.db
+2026-03-06 17:40:46,197 [INFO] ai_filter — AIFilter ✅ Activo model=deepseek-chat
+2026-03-06 17:40:46,476 [INFO] notify_prefs — notify_prefs cargadas: 4/9 activas
+2026-03-06 17:40:46,479 [INFO] tg_controller — ======================================================================
+2026-03-06 17:40:46,479 [INFO] tg_controller — TELEGRAM BOT LOGGING INICIALIZADO
+2026-03-06 17:40:46,479 [INFO] tg_controller — Fecha/Hora: 2026-03-06 17:40:46
+2026-03-06 17:40:46,479 [INFO] tg_controller — Logs completos: logs\telegram_full.log
+2026-03-06 17:40:46,480 [INFO] tg_controller — Solo errores: logs\telegram_errors.log
+2026-03-06 17:40:46,480 [INFO] tg_controller — ======================================================================
+2026-03-06 17:40:46,483 [INFO] bybit_client — BybitClient → DEMO (api-demo.bybit.com)
+2026-03-06 17:40:46,483 [INFO] bybit_client — API Key: zUCvRj...0KEa
+2026-03-06 17:40:46,484 [INFO] learning_engine — LearningEngine v2 — 14 trades cerrados en historial
+2026-03-06 17:40:46,485 [INFO] bot — TelegramNotifier activo
+2026-03-06 17:40:46,485 [INFO] news_engine — NewsEngine iniciado — scan cada 120s
+2026-03-06 17:40:49,026 [INFO] bot — ✅ Telegram OK → chat_id=8172390917
+2026-03-06 17:40:49,028 [INFO] bot — Bot iniciado — 🟡 PAPER — ['BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'BNBUSDT', 'XRPUSDT']
+2026-03-06 17:40:49,648 [INFO] main — ✅ Datos de mercado OK — BTC: 67,990.00 USDT
+2026-03-06 17:40:50,022 [INFO] bybit_client — ✅ Autenticación API verificada OK
+2026-03-06 17:40:50,401 [INFO] main — ✅ Auth OK — Balance USDT disponible: 52,278.61
+2026-03-06 17:40:50,402 [INFO] main — ✅ Telegram controller iniciado
+2026-03-06 17:40:50,402 [INFO] tg_controller — [INIT] Iniciando Telegram bot controller...
+2026-03-06 17:40:50,402 [INFO] news_engine — 📰 Escaneando noticias...
+2026-03-06 17:40:50,402 [INFO] tg_controller — [INIT] BOT_INSTANCE asignado correctamente
+2026-03-06 17:40:50,402 [INFO] news_engine — NewsEngine background thread iniciado
+2026-03-06 17:40:50,404 [INFO] bot — Escáner iniciado
+2026-03-06 17:40:50,425 [INFO] bot — Monitor iniciado
+2026-03-06 17:40:50,425 [INFO] bot — 🚀 Bot autónomo en marcha
+2026-03-06 17:40:50,426 [INFO] main — 🚀 Bot activo | Watchlist: BTCUSDT,ETHUSDT,SOLUSDT,BNBUSDT,XRPUSDT
+2026-03-06 17:40:50,427 [INFO] main —    TFs analizados: 1m 3m 5m 15m 30m 1h 2h 4h 6h 12h 1D 1W (12 TFs)
+2026-03-06 17:40:50,427 [INFO] main —    Scan: 30s | Monitor: 10s
+2026-03-06 17:40:51,120 [INFO] tg_controller — [INIT] Registrando 30 comandos...
+2026-03-06 17:40:51,121 [INFO] tg_controller — [INIT] Registrando CallbackQueryHandler para botones inline
+2026-03-06 17:40:51,122 [INFO] tg_controller — ✅ Telegram bot iniciado — 30 comandos + inline buttons
+2026-03-06 17:40:51,122 [INFO] tg_controller — [INIT] ⏳ Polling iniciado - esperando mensajes y interacciones de usuarios...
+2026-03-06 17:40:51,170 [INFO] main — ✅ | Bal: 52278.61 USDT | Pos: 0 | Trades: 14 | WR: 0.0% | PnL: -458.17 USDT
+2026-03-06 17:40:51,890 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot7279484602:AAHEmO2zdxL5JAR8oZ2HKOjVGXtWUCoXZhU/getMe "HTTP/1.1 200 OK"
+2026-03-06 17:40:52,276 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot7279484602:AAHEmO2zdxL5JAR8oZ2HKOjVGXtWUCoXZhU/setMyCommands "HTTP/1.1 200 OK"
+2026-03-06 17:40:52,278 [INFO] tg_controller — ✅ 30 comandos registrados en BotFather
+2026-03-06 17:40:52,534 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot7279484602:AAHEmO2zdxL5JAR8oZ2HKOjVGXtWUCoXZhU/deleteWebhook "HTTP/1.1 200 OK"
+2026-03-06 17:40:52,536 [INFO] telegram.ext.Application — Application started
+2026-03-06 17:40:55,730 [INFO] news_engine — Fear & Greed: 18 — Extreme Fear
+2026-03-06 17:40:55,736 [INFO] news_engine — 📰 21 noticias nuevas | Global bias: -0.11 | Alertas: 0
+2026-03-06 17:41:00,780 [INFO] bot — 📊 BTCUSDT: SHORT  score=-2.60  conf=30%  macro=SHORT  mid=NEUTRAL  entry=SHORT  ⚡SQUEEZE
+2026-03-06 17:41:03,266 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot7279484602:AAHEmO2zdxL5JAR8oZ2HKOjVGXtWUCoXZhU/getUpdates "HTTP/1.1 200 OK"
+2026-03-06 17:41:12,083 [INFO] main — ⛔ Deteniendo...
+2026-03-06 17:41:12,083 [INFO] bot — ⛔ Bot detenido
+2026-03-06 17:41:12,083 [INFO] main — Bot detenido.

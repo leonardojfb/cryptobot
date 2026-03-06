@@ -224,17 +224,26 @@ class LearningEngine:
         closed  = [t for t in history if t.get("result")]
         wins    = [t for t in closed if t["result"] == "WIN"]
         losses  = [t for t in closed if t["result"] == "LOSS"]
-        pnls    = [t["pnl_usdt"] for t in closed if t.get("pnl_usdt") is not None]
+        # Convertir pnl_usdt a float para evitar errores con strings
+        pnls    = [float(t["pnl_usdt"]) for t in closed if t.get("pnl_usdt") is not None]
+        
+        # Calcular PnLs por tipo de trade (forzando a float)
+        win_pnls   = [float(t["pnl_usdt"]) for t in wins if t.get("pnl_usdt") is not None]
+        loss_pnls  = [float(t["pnl_usdt"]) for t in losses if t.get("pnl_usdt") is not None]
+        
+        total_trades = len(closed)
+        total_pnl = round(sum(pnls), 2) if pnls else 0.0
+        
         return {
-            "total_trades": len(closed),
-            "open_trades":  len(history) - len(closed),
+            "total_trades": total_trades,
+            "open_trades":  len(history) - total_trades,
             "wins":  len(wins), "losses": len(losses),
-            "win_rate":   round(len(wins)/len(closed)*100, 1) if closed else 0,
-            "total_pnl":  round(sum(pnls), 2),
-            "avg_win":    round(float(np.mean([t["pnl_usdt"] for t in wins])),  2) if wins   else 0,
-            "avg_loss":   round(float(np.mean([t["pnl_usdt"] for t in losses])),2) if losses else 0,
-            "best_trade": round(max(pnls), 2) if pnls else 0,
-            "worst_trade":round(min(pnls), 2) if pnls else 0,
+            "win_rate":   round(len(wins)/total_trades*100, 1) if total_trades > 0 else 0,
+            "total_pnl":  total_pnl,
+            "avg_win":    round(float(np.mean(win_pnls)),  2) if win_pnls   else 0.0,
+            "avg_loss":   round(float(np.mean(loss_pnls)),2) if loss_pnls else 0.0,
+            "best_trade": round(max(pnls), 2) if pnls else 0.0,
+            "worst_trade":round(min(pnls), 2) if pnls else 0.0,
             "current_params": self.params,
         }
 

@@ -285,6 +285,7 @@ def get_pnl_summary(days: int = 7) -> Dict:
     """
     Resumen de PnL de los últimos N días.
     Siempre muestra signo + / - claramente.
+    Valida tipos de datos: convierte strings a floats, maneja None.
     """
     since = int(time.time()) - days * 86400
     conn  = _connect()
@@ -305,11 +306,37 @@ def get_pnl_summary(days: int = 7) -> Dict:
             WHERE ts_close >= ?
         """, (since,)).fetchone()
         d = dict(row)
+        
+        # Convertir a tipos correctos y manejar None
+        total_trades = int(d.get("total_trades") or 0)
+        wins = int(d.get("wins") or 0)
+        losses = int(d.get("losses") or 0)
+        
+        # Convertir PnL a floats
+        total_pnl = float(d.get("total_pnl") or 0)
+        gross_profit = float(d.get("gross_profit") or 0)
+        gross_loss = abs(float(d.get("gross_loss") or 0))
+        best_trade = float(d.get("best_trade") or 0)
+        worst_trade = float(d.get("worst_trade") or 0)
+        avg_win = float(d.get("avg_win") or 0)
+        avg_loss = float(d.get("avg_loss") or 0)
+        
+        # Actualizar diccionario con valores validados
+        d["total_trades"] = total_trades
+        d["wins"] = wins
+        d["losses"] = losses
+        d["total_pnl"] = round(total_pnl, 2)
+        d["gross_profit"] = round(gross_profit, 2)
+        d["gross_loss"] = round(gross_loss * -1, 2)  # Devolver como negativo para claridad
+        d["best_trade"] = round(best_trade, 2)
+        d["worst_trade"] = round(worst_trade, 2)
+        d["avg_win"] = round(avg_win, 2)
+        d["avg_loss"] = round(avg_loss, 2)
+        
         # Profit factor
-        gross_profit = d.get("gross_profit") or 0
-        gross_loss   = abs(d.get("gross_loss") or 0)
         d["profit_factor"] = round(gross_profit / gross_loss, 2) if gross_loss > 0 else None
-        d["win_rate"] = round(d["wins"] / d["total_trades"] * 100, 1) if d["total_trades"] else 0
+        # Win rate: evitar división por cero
+        d["win_rate"] = round(wins / total_trades * 100, 1) if total_trades > 0 else 0
         return d
     finally:
         conn.close()
