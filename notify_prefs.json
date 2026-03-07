@@ -4,8 +4,8 @@
   "analysis": false,
   "news": false,
   "ai_decisions": true,
-  "positions": true,
-  "performance": false,
+  "positions": false,
+  "performance": true,
   "risk": false,
   "dev": true
 }

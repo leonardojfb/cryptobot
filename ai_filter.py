@@ -120,7 +120,7 @@ REGLAS ESTRICTAS:
 1. Responde SOLO con un objeto JSON válido, sin markdown, sin texto adicional.
 2. Estructura EXACTA — no puedes omitir ningún campo:
    {"smc_analysis": "...", "news_impact": "...", "approve": true/false, "confidence": 0.0-1.0, "recommended_leverage": int, "reasoning": "max 200 chars"}
-3. "recommended_leverage": entero entre 1 y 100. Nunca 0.
+3. "recommended_leverage": entero entre 10 y 100. Nunca uses menos de 10x (incluso en Extreme Fear).
 4. "smc_analysis": describe el setup SMC en máximo 100 chars.
 5. "news_impact": exactamente uno de: HIGH_POSITIVE, MODERATE_POSITIVE, NEUTRAL, MODERATE_NEGATIVE, HIGH_NEGATIVE
 6. "confidence": tu certeza en la decisión (< 0.50 = muy inseguro → reduce leverage).
@@ -719,7 +719,7 @@ Setup PREMIUM (Sweep+OB+VWAP, score>5, noticias neutras): 20x-50x
 Setup BUENO (2+ setups SMC, score 3.5-5): 10x-20x
 Setup BÁSICO o incierto: 3x-10x
 Alta volatilidad (ATR={atr:.4f} = {atr_pct:.1f}%): reducir leverage
-F&G extremo (<20 LONG o >85 SHORT): máximo 5x-10x
+F&G extremo (<20 LONG o >85 SHORT): apalancamiento defensivo de 10x-15x
 Sugerencia base del sistema: ~{base_lev_hint}x
 
 Analiza TODO y decide. Responde SOLO con el JSON exacto."""

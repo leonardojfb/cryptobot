@@ -1,8 +1,8 @@
 """
-bot_autonomous.py  v5 — ATM Event-Driven Monitor + Kill-Switch Gate
+bot_autonomous.py  v4 — Sistema de Supervivencia + Kill-Switch Gate
 ════════════════════════════════════════════════════════════════════
-FASE A — JERARQUÍA DE CORTACIRCUITOS (intacta)
-Evaluados en _check_kill_switches() ANTES de cualquier lógica de IA:
+JERARQUÍA DE CORTACIRCUITOS — evaluados en _check_kill_switches()
+ANTES de cualquier lógica de IA, en este orden exacto:
 
   KS-1  API Circuit Breaker    → 3 errores place_order en 5 min → pausa 15 min
   KS-2  Daily DD Kill-Switch   → PnL diario < -5 % → lock hasta 00:00 UTC
@@ -12,23 +12,6 @@ Evaluados en _check_kill_switches() ANTES de cualquier lógica de IA:
 
 La IA (ai_filter.should_trade) se invoca DESPUÉS y NO puede saltarse
 ninguno de los KS anteriores.
-
-FASE B — ATM EVENT-DRIVEN MONITOR
-El monitor corre cada MONITOR_TICK_SEC (15s por defecto) pero la IA
-(ai_filter.evaluate_open_position) sólo se despierta si:
-
-  Condición NORMAL     → time.time() >= pos["next_eval_ts"]
-                         Wakeup: ATM_WAKEUP_BAR_CLOSE
-                         Timeframes: FAST=5m | NORMAL=15m | INSTITUTIONAL=4h
-
-  Condición EMERGENCIA → precio se movió ≥ ATM_EMERGENCY_PRICE_MOVE_PCT%
-                         desde la última evaluación
-                         Wakeup: ATM_WAKEUP_EMERGENCY_VOLATILITY
-
-  Condición EMERGENCIA → news_engine emite alerta crítica nueva
-                         Wakeup: ATM_WAKEUP_EMERGENCY_NEWS
-
-La IA adapta su paciencia y agresividad según strategy_type + wakeup_reason.
 
 Estado persistente del CB: api_cb_state.json
 Estado persistente del Risk: risk_state.json
@@ -60,7 +43,6 @@ from tg_controller          import notify, notify_dev
 from reason_codes           import (
     RC, ENTRY_MODE_TO_STRATEGY, VALID_STRATEGY_TYPES,
     API_CB_MAX_ERRORS, API_CB_WINDOW_SEC, API_CB_PAUSE_SEC,
-    STRATEGY_TIMEFRAME_MIN, ATM_EMERGENCY_PRICE_MOVE_PCT,
 )
 import notify_prefs
 
@@ -69,7 +51,7 @@ BYBIT_API_KEY    = os.getenv("BYBIT_API_KEY",   "").strip()
 BYBIT_API_SECRET = os.getenv("BYBIT_API_SECRET","").strip()
 PAPER_TRADING    = os.getenv("PAPER_TRADING","true").lower() in ("1","true","yes")
 SCAN_INTERVAL_SEC= int(os.getenv("SCAN_INTERVAL_SEC",   "30"))
-MONITOR_TICK_SEC = int(os.getenv("MONITOR_TICK_SEC",    "15"))   # tick del monitor ATM
+MONITOR_INTERVAL = int(os.getenv("MONITOR_INTERVAL_SEC","10"))
 AUTO_SCAN_ENABLED= os.getenv("AUTO_SCAN","true").lower() in ("1","true","yes")
 MIN_VOLUME_USDT  = float(os.getenv("MIN_VOLUME_USDT","5000000"))
 TG_TOKEN         = os.getenv("TELEGRAM_BOT_TOKEN","").strip()
@@ -325,6 +307,34 @@ class TelegramNotifier:
 
 
 # ══════════════════════════════════════════════════════════
+#  PROXY DE NOTICIAS — gate de notify_prefs("news")
+# ══════════════════════════════════════════════════════════
+
+class _NewsTelegramProxy:
+    """
+    Proxy que envuelve TelegramNotifier para las notificaciones del NewsEngine.
+    Sólo envía si notify_prefs.is_enabled("news") es True.
+
+    Esto evita que el NewsEngine haga spam con alertas de noticias cuando
+    el usuario ha desactivado esa categoría desde el menú de Telegram.
+    """
+    def __init__(self, notifier: TelegramNotifier) -> None:
+        self._n = notifier
+
+    @property
+    def _active(self) -> bool:
+        return self._n._active
+
+    def send(self, text: str) -> None:
+        if notify_prefs.is_enabled("news"):
+            self._n.send(text)
+
+    def send_direct(self, text: str) -> bool:
+        # send_direct se usa solo para mensajes críticos de inicio
+        return self._n.send_direct(text)
+
+
+# ══════════════════════════════════════════════════════════
 #  BOT AUTÓNOMO v4
 # ══════════════════════════════════════════════════════════
 
@@ -343,7 +353,11 @@ class AutonomousBot:
         # ── Instanciar Risk Manager y API CB (con tg ya listo) ─────────────────
         self.risk_mgr = RiskManager(self.learner)
         self.api_cb   = APICircuitBreaker(tg_notifier=self.tg)
-        self.news     = NewsEngine(telegram_notifier=self.tg, scan_interval=120)
+        # ── NewsEngine recibe un proxy que respeta notify_prefs("news") ─────────
+        self.news     = NewsEngine(
+            telegram_notifier=_NewsTelegramProxy(self.tg),
+            scan_interval=120
+        )
 
         self.open_positions: Dict[str, Dict] = {}
         self.cooldowns:      Dict[str, float] = {}
@@ -360,21 +374,15 @@ class AutonomousBot:
             f"Exp: {self.risk_mgr.MAX_EXPOSURE_PCT}% | "
             f"Strat: 4×12h | News: ±30min"
         )
-        atm  = (
-            f"⏰ ATM Event-Driven (tick={MONITOR_TICK_SEC}s):\n"
-            f"  FAST={STRATEGY_TIMEFRAME_MIN['FAST']}m | "
-            f"NORMAL={STRATEGY_TIMEFRAME_MIN['NORMAL']}m | "
-            f"INST={STRATEGY_TIMEFRAME_MIN['INSTITUTIONAL']}m | "
-            f"Emerg≥{ATM_EMERGENCY_PRICE_MOVE_PCT}%"
-        )
         msg = (
             f"🤖 <b>[{RC.SYSTEM_BOT_STARTED}] — {mode}</b>\n"
             f"Watchlist: {', '.join(FIXED_WATCHLIST)}\n"
-            f"Scan: {SCAN_INTERVAL_SEC}s | Monitor tick: {MONITOR_TICK_SEC}s\n"
+            f"Scan: {SCAN_INTERVAL_SEC}s | Monitor: {MONITOR_INTERVAL}s\n"
             f"Lev: {BOT_MIN_LEVERAGE}x–{BOT_MAX_LEVERAGE}x | Risk: {BOT_MAX_RISK_PCT}%\n"
-            f"{ks}\n{atm}"
+            f"{ks}"
         )
-        if self.tg._active:
+        # ── TASK 3: SYSTEM_BOT_STARTED → "risk" ──────────────────────────────
+        if self.tg._active and notify_prefs.is_enabled("risk"):
             ok = self.tg.send_direct(msg)
             if not ok:
                 log.error(
@@ -451,28 +459,68 @@ class AutonomousBot:
                     continue
                 side = "LONG" if p["side"] == "Buy" else "SHORT"
                 ep   = float(p.get("avgPrice", 0))
-                st   = "NORMAL"   # estrategia por defecto en posiciones sincronizadas
-                tf_m = STRATEGY_TIMEFRAME_MIN.get(st, 15)
+
+                # ── Recuperar estado local existente para este símbolo ─────────
+                # Leer bajo lock para evitar race con el monitor
+                with self._lock:
+                    existing: Dict = self.open_positions.get(sym, {})
+
+                # ── open_ts: prioridad 1 local → 2 Bybit createdTime → 3 now ──
+                # Bybit devuelve createdTime en milisegundos como string
+                _created_ms = p.get("createdTime")
+                _bybit_ts: Optional[int] = None
+                if _created_ms:
+                    try:
+                        _bybit_ts = int(int(_created_ms) / 1000)
+                    except (ValueError, TypeError):
+                        pass
+                open_ts = (
+                    existing.get("open_ts")      # 1º: reloj original del bot
+                    or _bybit_ts                 # 2º: timestamp real de Bybit
+                    or int(time.time())          # 3º: fallback
+                )
+
+                # ── tf_minutes: leer de existing si existe, calcular si no ─────
+                st_existing  = existing.get("strategy_type", "NORMAL")
+                tf_m_default = STRATEGY_TIMEFRAME_MIN.get(st_existing, 15)
+                tf_m         = existing.get("tf_minutes", tf_m_default)
+
+                # ── next_eval_ts: preservar si existe, programar si es nueva ───
+                next_eval_ts = (
+                    existing.get("next_eval_ts")
+                    or self._get_next_bar_close_ts(tf_m)
+                )
+
                 new_pos[sym] = {
-                    "trade_id":          f"sync_{sym}",
-                    "symbol":            sym,
-                    "side":              side,
-                    "entry_price":       ep,
-                    "qty":               float(p.get("size", 0)),
-                    "leverage":          int(float(p.get("leverage", 10))),
-                    "tp":                float(p.get("takeProfit", 0)) or None,
-                    "sl":                float(p.get("stopLoss",   0)) or None,
-                    "open_ts":           int(time.time()),
-                    "peak_price":        ep,
-                    "atr":               None,
-                    "ai_decision":       None,
-                    "strategy_type":     st,
-                    # ATM event-driven fields
-                    "tf_minutes":        tf_m,
-                    "next_eval_ts":      self._get_next_bar_close_ts(tf_m),
-                    "last_eval_price":   ep,
-                    "sl_at_breakeven":   False,
-                    "last_news_alert_ts":0,
+                    # ── Campos que siempre vienen de Bybit (fuente de verdad) ──
+                    "symbol":       sym,
+                    "side":         side,
+                    "entry_price":  ep,
+                    "qty":          float(p.get("size", 0)),
+                    "leverage":     int(float(p.get("leverage", 10))),
+                    "tp":           float(p.get("takeProfit", 0)) or None,
+                    "sl":           float(p.get("stopLoss",   0)) or None,
+
+                    # ── Campos con fusión local → Bybit → default ─────────────
+                    "trade_id":     existing.get("trade_id", f"sync_{sym}"),
+                    "open_ts":      open_ts,
+
+                    # ── Campos de memoria del bot: preservar si existen ────────
+                    # Si la posición es nueva (existing={}) se usan los defaults
+                    "strategy_type":  existing.get("strategy_type",  "NORMAL"),
+                    "peak_price":     existing.get("peak_price",     ep),
+                    "atr":            existing.get("atr"),
+                    "ai_decision":    existing.get("ai_decision"),
+
+                    # ── Campos ATM Event-Driven: preservar intactos ────────────
+                    "tf_minutes":           tf_m,
+                    "next_eval_ts":         next_eval_ts,
+                    "last_eval_price":      existing.get("last_eval_price",      ep),
+                    "sl_at_breakeven":      existing.get("sl_at_breakeven",      False),
+                    "last_news_alert_ts":   existing.get("last_news_alert_ts",   0),
+                    # Campos de ciclo de vida adicionales (forward-compat)
+                    "has_taken_partial":    existing.get("has_taken_partial",    False),
+                    "sl_moved_to_be":       existing.get("sl_moved_to_be",       False),
                 }
 
             old_keys = set(self.open_positions.keys())
@@ -482,7 +530,8 @@ class AutonomousBot:
                 pos = new_pos[sym]
                 log.info(
                     f"📡 [{RC.RISK_STATE_LOADED}] "
-                    f"pos detectada: {sym} {pos['side']} @ {pos['entry_price']}"
+                    f"pos detectada: {sym} {pos['side']} @ {pos['entry_price']}  "
+                    f"open_ts={pos['open_ts']}  tf={pos['tf_minutes']}m"
                 )
                 fake = {
                     "composite_score":0.0,"confidence":0.5,
@@ -516,11 +565,13 @@ class AutonomousBot:
                 ) or pos.get("strategy_type","NORMAL")
                 self.risk_mgr.on_close(sym, pnl, strategy_type=st)
                 result_e = "✅" if pnl >= 0 else "❌"
-                self.tg.send(
-                    f"{result_e} <b>[{RC.TRADE_CLOSED_EXTERNAL}]</b>\n"
-                    f"Par: <b>{sym}</b>  Razón: {reason}\n"
-                    f"PnL: <code>{pnl:+.2f} USDT</code>"
-                )
+                # ── "trades": TRADE_CLOSED_EXTERNAL detectado en sync ─────────
+                if notify_prefs.is_enabled("trades"):
+                    self.tg.send(
+                        f"{result_e} <b>[{RC.TRADE_CLOSED_EXTERNAL}]</b>\n"
+                        f"Par: <b>{sym}</b>  Razón: {reason}\n"
+                        f"PnL: <code>{pnl:+.2f} USDT</code>"
+                    )
                 log.warning(
                     RC.fmt(RC.TRADE_CLOSED_EXTERNAL,
                            symbol=sym, pnl=f"{pnl:+.2f}", reason=reason)
@@ -550,25 +601,6 @@ class AutonomousBot:
         self.cooldowns[sym] = (
             time.time() + self.learner.params.get("cooldown_seconds", 60)
         )
-
-    @staticmethod
-    def _get_next_bar_close_ts(timeframe_minutes: int) -> int:
-        """
-        Calcula el timestamp UTC exacto (epoch seconds) del cierre de la
-        vela ACTUAL para el timeframe dado.
-
-        Ejemplo: timeframe_minutes=15, now=10:07 UTC
-          → vela actual abrió a las 10:00
-          → cierra a las 10:15 → retorna ese timestamp
-
-        Los timestamps de Bybit/CCXT son siempre alineados al borde de hora UTC,
-        así que floor(now / tf_sec) * tf_sec + tf_sec funciona correctamente
-        para todos los timeframes estándar (1m, 5m, 15m, 4h, etc.).
-        """
-        now    = int(time.time())
-        tf_sec = timeframe_minutes * 60
-        current_bar_open = (now // tf_sec) * tf_sec
-        return current_bar_open + tf_sec
 
     def _get_balance(self) -> float:
         try:
@@ -655,7 +687,9 @@ class AutonomousBot:
                 RC.TRADE_BLOCKED_STRATEGY_COOLDOWN,
                 RC.TRADE_BLOCKED_MAX_EXPOSURE,
             }
-            if any(c in block_reason for c in _critical_ks):
+            # ── "risk": alertas de Kill-Switches críticos ─────────────────────
+            if (any(c in block_reason for c in _critical_ks)
+                    and notify_prefs.is_enabled("risk")):
                 self.tg.send(
                     f"🛡 <b>Kill-Switch activo</b>\n"
                     f"Par: {sym}  {sig}  [{strategy_type}]\n"
@@ -843,32 +877,20 @@ class AutonomousBot:
         )
 
         # ── Registrar posición ─────────────────────────────────────────────────
-        tf_m    = STRATEGY_TIMEFRAME_MIN.get(strategy_type, 15)
         pos_data: Dict[str, Any] = {
-            "trade_id":          _pending_id,
-            "symbol":            sym,
-            "side":              sig,
-            "entry_price":       mark,
-            "qty":               qty,
-            "leverage":          final_leverage,
-            "tp":                tp,
-            "sl":                sl,
-            "open_ts":           int(time.time()),
-            "peak_price":        mark,
-            "atr":               atr_v,
-            "ai_decision":       ai_decision,
-            "strategy_type":     strategy_type,
-            # ── ATM Event-Driven fields ────────────────────────────────────────
-            # tf_minutes: timeframe base de la estrategia (5 / 15 / 240)
-            "tf_minutes":        tf_m,
-            # next_eval_ts: timestamp UTC del próximo cierre de vela → despertar normal
-            "next_eval_ts":      self._get_next_bar_close_ts(tf_m),
-            # last_eval_price: precio en la última evaluación IA → detectar spikes
-            "last_eval_price":   mark,
-            # sl_at_breakeven: bandera para evitar mover SL a BE dos veces
-            "sl_at_breakeven":   False,
-            # last_news_alert_ts: ts de la última alerta macro procesada
-            "last_news_alert_ts":0,
+            "trade_id":     _pending_id,
+            "symbol":       sym,
+            "side":         sig,
+            "entry_price":  mark,
+            "qty":          qty,
+            "leverage":     final_leverage,
+            "tp":           tp,
+            "sl":           sl,
+            "open_ts":      int(time.time()),
+            "peak_price":   mark,
+            "atr":          atr_v,
+            "ai_decision":  ai_decision,
+            "strategy_type":strategy_type,
         }
         with self._lock:
             self.open_positions[sym] = pos_data
@@ -899,26 +921,25 @@ class AutonomousBot:
         news_e = "🟢" if news_d=="BULLISH" else ("🔴" if news_d=="BEARISH" else "⚪")
         risk_s = self.risk_mgr.get_status()
         cb_s   = self.api_cb.get_status()
-        next_ts = pos_data["next_eval_ts"]
-        next_str = time.strftime("%H:%M UTC", time.gmtime(next_ts))
 
-        self.tg.send(
-            f"{'🟢' if sig=='LONG' else '🔴'} <b>TRADE ABIERTO</b>\n"
-            f"Par: <b>{sym}</b>  {sig}  x{final_leverage}  [{strategy_type}]\n"
-            f"Entrada: <code>{mark:.4f}</code>  Qty: {qty}\n"
-            f"TP: <code>{tp}</code>  SL: <code>{sl}</code>\n"
-            f"R:R ≈ 1:{rr:.1f}\n"
-            f"Score: {score:+.2f}  Conf: {conf:.0%}  [{entry_mode}]\n"
-            f"{aligned_txt}\n"
-            f"SMC: {' '.join(smc_badges) if smc_badges else 'sin setup'}\n"
-            f"🤖 IA: {smc_anal[:60]}\n"
-            f"   Noticias: {news_imp} | {news_e} {news_d}\n"
-            f"   Leverage IA={ai_lev}x → final={final_leverage}x\n"
-            f"F&G: {fg} — {fg_lbl} | Balance: {balance:.2f} USDT\n"
-            f"⏰ ATM [{strategy_type} | {tf_m}m] → primera eval: {next_str}\n"
-            f"📊 DD hoy: {risk_s['daily_pnl']:+.2f} | "
-            f"CB: {'✅' if not cb_s['active'] else '🔴'}"
-        )
+        # ── "trades": TRADE ABIERTO ───────────────────────────────────────────
+        if notify_prefs.is_enabled("trades"):
+            self.tg.send(
+                f"{'🟢' if sig=='LONG' else '🔴'} <b>TRADE ABIERTO</b>\n"
+                f"Par: <b>{sym}</b>  {sig}  x{final_leverage}  [{strategy_type}]\n"
+                f"Entrada: <code>{mark:.4f}</code>  Qty: {qty}\n"
+                f"TP: <code>{tp}</code>  SL: <code>{sl}</code>\n"
+                f"R:R ≈ 1:{rr:.1f}\n"
+                f"Score: {score:+.2f}  Conf: {conf:.0%}  [{entry_mode}]\n"
+                f"{aligned_txt}\n"
+                f"SMC: {' '.join(smc_badges) if smc_badges else 'sin setup'}\n"
+                f"🤖 IA: {smc_anal[:60]}\n"
+                f"   Noticias: {news_imp} | {news_e} {news_d}\n"
+                f"   Leverage IA={ai_lev}x → final={final_leverage}x\n"
+                f"F&G: {fg} — {fg_lbl} | Balance: {balance:.2f} USDT\n"
+                f"📊 DD hoy: {risk_s['daily_pnl']:+.2f} | "
+                f"CB: {'✅' if not cb_s['active'] else '🔴'}"
+            )
 
         if notify_prefs.is_enabled("analysis"):
             self.tg.send(format_analysis_for_tg(analysis))
@@ -1044,17 +1065,19 @@ class AutonomousBot:
                    if dur_s < 3600 else f"{dur_s//3600}h {(dur_s%3600)//60}m")
         risk_s  = self.risk_mgr.get_status()
 
-        self.tg.send(
-            f"{'✅' if pnl>0 else '❌'} <b>TRADE CERRADO</b>  [{reason}]\n"
-            f"Par: <b>{sym}</b>  {pos['side']}  x{pos['leverage']}  [{st}]\n"
-            f"Entrada: <code>{pos['entry_price']:.4f}</code>  "
-            f"Cierre: <code>{mark:.4f}</code>\n"
-            f"PnL: <code>{pnl:+.2f} USDT</code> "
-            f"{'🟢' if pnl>=0 else '🔴'}  Duración: {dur_str}\n"
-            f"Balance: {self._get_balance():.2f} USDT\n"
-            f"📊 DD hoy: {risk_s['daily_pnl']:+.2f} | "
-            f"Cons: {risk_s['consecutive_losses']}"
-        )
+        # ── "trades": TRADE CERRADO ───────────────────────────────────────────
+        if notify_prefs.is_enabled("trades"):
+            self.tg.send(
+                f"{'✅' if pnl>0 else '❌'} <b>TRADE CERRADO</b>  [{reason}]\n"
+                f"Par: <b>{sym}</b>  {pos['side']}  x{pos['leverage']}  [{st}]\n"
+                f"Entrada: <code>{pos['entry_price']:.4f}</code>  "
+                f"Cierre: <code>{mark:.4f}</code>\n"
+                f"PnL: <code>{pnl:+.2f} USDT</code> "
+                f"{'🟢' if pnl>=0 else '🔴'}  Duración: {dur_str}\n"
+                f"Balance: {self._get_balance():.2f} USDT\n"
+                f"📊 DD hoy: {risk_s['daily_pnl']:+.2f} | "
+                f"Cons: {risk_s['consecutive_losses']}"
+            )
         log.info(
             f"{'✅' if pnl>0 else '❌'} CERRADO {sym}  "
             f"PnL={pnl:+.2f}  [{reason}]  strategy={st}"
@@ -1062,52 +1085,22 @@ class AutonomousBot:
         return True
 
     # ══════════════════════════════════════════════════════
-    #  MONITOR EVENT-DRIVEN — Fase B
+    #  MONITOR DE POSICIONES
     # ══════════════════════════════════════════════════════
 
     def _monitor_loop(self) -> None:
-        """
-        Loop rápido que corre cada MONITOR_TICK_SEC (15s por defecto).
-
-        Cada tick hace:
-          1. Obtener precio de mercado para cada posición abierta.
-          2. Verificar cierre externo (TP/SL hit en el exchange).
-          3. Actualizar trailing stop mecánico (sin IA).
-          4. Evaluar condiciones de despertar para la IA:
-               - BAR_CLOSE:             time.time() >= next_eval_ts
-               - EMERGENCY_VOLATILITY:  precio movido ≥ umbral desde last_eval_price
-               - EMERGENCY_NEWS:        nueva alerta crítica del news_engine
-          5. Si hay condición → llamar ai_filter.evaluate_open_position().
-          6. Ejecutar la acción retornada por la IA.
-          7. Actualizar next_eval_ts y last_eval_price.
-
-        La IA NO se llama en cada tick — sólo cuando hay una condición real.
-        """
-        log.info(
-            f"Monitor event-driven iniciado  "
-            f"(tick={MONITOR_TICK_SEC}s | "
-            f"TF: FAST={STRATEGY_TIMEFRAME_MIN['FAST']}m "
-            f"NORMAL={STRATEGY_TIMEFRAME_MIN['NORMAL']}m "
-            f"INST={STRATEGY_TIMEFRAME_MIN['INSTITUTIONAL']}m)"
-        )
+        log.info("Monitor iniciado")
         while self.running:
             try:
                 with self._lock:
                     syms = list(self.open_positions.keys())
                 for sym in syms:
-                    try:
-                        self._check_position(sym)
-                    except Exception as e:
-                        log.error(f"_check_position [{sym}]: {e}")
+                    self._check_position(sym)
             except Exception as e:
                 log.error(f"monitor_loop: {e}")
-            time.sleep(MONITOR_TICK_SEC)
+            time.sleep(MONITOR_INTERVAL)
 
     def _check_position(self, sym: str) -> None:
-        """
-        Evaluación de una posición abierta por el monitor event-driven.
-        Sólo llama a la IA si se cumple una condición de despertar.
-        """
         with self._lock:
             pos = self.open_positions.get(sym)
         if not pos:
@@ -1117,454 +1110,84 @@ class AutonomousBot:
         if not mark:
             return
 
-        now = time.time()
+        side   = pos["side"]
+        atr_v  = pos.get("atr") or 0
+        params = self.learner.get_params()
 
-        # ── 1. Verificar cierre externo (TP/SL hit) — SIEMPRE primero ─────────
+        # ── Trailing stop ──────────────────────────────────────────────────────
+        if params.get("use_trailing", True) and atr_v:
+            peak    = pos.get("peak_price", pos["entry_price"])
+            trail_m = params.get("trail_atr_mult", 1.0)
+            if side == "LONG" and mark > peak:
+                new_sl = self.client.safe_price(sym, mark - atr_v * trail_m)
+                if new_sl > (pos.get("sl") or 0):
+                    try:
+                        self.client.set_tp_sl(sym, sl=new_sl)
+                        with self._lock:
+                            self.open_positions[sym]["sl"]         = new_sl
+                            self.open_positions[sym]["peak_price"] = mark
+                        log.debug(
+                            RC.fmt(RC.TRADE_CLOSED_TRAILING_SL,
+                                   symbol=sym, new_sl=new_sl, mark=mark)
+                        )
+                    except Exception:
+                        pass
+            elif side == "SHORT" and mark < peak:
+                new_sl = self.client.safe_price(sym, mark + atr_v * trail_m)
+                if new_sl < (pos.get("sl") or 999999):
+                    try:
+                        self.client.set_tp_sl(sym, sl=new_sl)
+                        with self._lock:
+                            self.open_positions[sym]["sl"]         = new_sl
+                            self.open_positions[sym]["peak_price"] = mark
+                        log.debug(
+                            RC.fmt(RC.TRADE_CLOSED_TRAILING_SL,
+                                   symbol=sym, new_sl=new_sl, mark=mark)
+                        )
+                    except Exception:
+                        pass
+
+        # ── Verificar cierre externo (TP/SL hit) ───────────────────────────────
         try:
             real      = self.client.get_positions(sym)
             real_size = sum(float(p.get("size", 0)) for p in real)
             if real_size == 0 and sym in self.open_positions:
-                self._handle_external_close(sym, pos, mark)
-                return
-        except Exception as e:
-            log.debug(f"_check_position [{sym}] external check: {e}")
-
-        # ── 2. Trailing stop mecánico (siempre activo, independiente de la IA) ─
-        self._update_trailing_stop(sym, pos, mark)
-
-        # Refrescar pos después del trailing update
-        with self._lock:
-            pos = self.open_positions.get(sym)
-        if not pos:
-            return
-
-        # ── 3. Determinar wakeup reason ────────────────────────────────────────
-        wakeup_reason: Optional[str] = None
-
-        # 3a. Emergencia — nueva alerta crítica de noticias
-        _, freeze_evt = self.news.is_news_freeze_active()
-        last_news_ts  = float(pos.get("last_news_alert_ts", 0))
-        if freeze_evt:
-            evt_ts = float(freeze_evt.get("timestamp", 0))
-            # Es nueva si ocurrió tras la última eval Y en los últimos 10 minutos
-            if evt_ts > last_news_ts and evt_ts > (now - 600):
-                wakeup_reason = RC.ATM_WAKEUP_EMERGENCY_NEWS
-                with self._lock:
-                    if sym in self.open_positions:
-                        self.open_positions[sym]["last_news_alert_ts"] = evt_ts
-
-        # 3b. Emergencia — spike de precio desde la última evaluación
-        if wakeup_reason is None:
-            last_eval_price = float(
-                pos.get("last_eval_price", pos["entry_price"]) or pos["entry_price"]
-            )
-            if last_eval_price > 0:
-                move_pct = abs(mark - last_eval_price) / last_eval_price * 100
-                # Umbral dinámico: si el ATR es conocido usarlo, si no el estático
-                atr_v = float(pos.get("atr") or 0)
-                entry = float(pos.get("entry_price", 0) or 0)
-                if atr_v > 0 and entry > 0:
-                    atr_pct_of_price   = atr_v / entry * 100
-                    # Emergencia = movimiento de ≥ 0.75 × ATR% o el umbral estático
-                    emergency_threshold = max(ATM_EMERGENCY_PRICE_MOVE_PCT,
-                                              atr_pct_of_price * 0.75)
-                else:
-                    emergency_threshold = ATM_EMERGENCY_PRICE_MOVE_PCT
-                if move_pct >= emergency_threshold:
-                    wakeup_reason = RC.ATM_WAKEUP_EMERGENCY_VOLATILITY
-
-        # 3c. Normal — cierre de vela del timeframe base
-        if wakeup_reason is None:
-            next_eval_ts = int(pos.get("next_eval_ts", 0))
-            if now >= next_eval_ts:
-                wakeup_reason = RC.ATM_WAKEUP_BAR_CLOSE
-
-        # ── 4. Sin condición de despertar → tick silencioso, no llamar a la IA ─
-        if wakeup_reason is None:
-            next_eval_ts   = int(pos.get("next_eval_ts", 0))
-            secs_remaining = max(0, next_eval_ts - now)
-            log.debug(
-                RC.fmt(RC.ATM_AI_SKIPPED,
-                       symbol=sym, mark=f"{mark:.4f}",
-                       strategy=pos.get("strategy_type","?"),
-                       next_eval_in=f"{secs_remaining:.0f}s")
-            )
-            return
-
-        # ── 5. Llamar a la IA ──────────────────────────────────────────────────
-        log.info(
-            RC.fmt(wakeup_reason,
-                   symbol=sym, mark=f"{mark:.4f}",
-                   strategy=pos.get("strategy_type","?"),
-                   tf=f"{pos.get('tf_minutes','?')}m")
-        )
-        news_bias   = self.news.get_news_bias(sym)
-        recent_news = self.news.get_recent_news(4)
-
-        atm_result = ai_filter.evaluate_open_position(
-            pos           = pos,
-            current_price = mark,
-            wakeup_reason = wakeup_reason,
-            news_bias     = news_bias,
-            recent_news   = recent_news,
-        )
-
-        action     = atm_result.get("action", "HOLD")
-        confidence = float(atm_result.get("confidence", 0.5))
-        new_sl     = atm_result.get("new_sl")
-        reasoning  = str(atm_result.get("reasoning", ""))
-
-        # ── 6. Ejecutar la acción ordenada por la IA ───────────────────────────
-        self._execute_atm_action(
-            sym, pos, action, new_sl, reasoning,
-            wakeup_reason, mark, confidence
-        )
-
-        # ── 7. Actualizar estado ATM para el próximo ciclo ─────────────────────
-        # Solo actualizar si la posición sigue abierta (CLOSE la elimina)
-        with self._lock:
-            if sym in self.open_positions:
-                tf_m     = int(pos.get("tf_minutes", 15))
-                next_ts  = self._get_next_bar_close_ts(tf_m)
-                self.open_positions[sym]["last_eval_price"] = mark
-                self.open_positions[sym]["next_eval_ts"]    = next_ts
-                log.info(
-                    RC.fmt(RC.ATM_EVAL_SCHEDULED,
-                           symbol=sym,
-                           tf=f"{tf_m}m",
-                           wakeup_was=wakeup_reason.split("_")[-1],
-                           action_taken=action,
-                           next_eval=time.strftime("%H:%M:%S UTC",
-                                                   time.gmtime(next_ts)))
-                )
-
-    # ── Helpers del monitor ───────────────────────────────────────────────────
-
-    def _update_trailing_stop(self, sym: str, pos: Dict, mark: float) -> None:
-        """
-        Trailing stop mecánico basado en ATR.
-        Se ejecuta en cada tick, independientemente de la IA.
-        Solo mueve el SL si el nuevo nivel es MEJOR que el actual.
-        """
-        atr_v  = float(pos.get("atr") or 0)
-        params = self.learner.get_params()
-        if not (params.get("use_trailing", True) and atr_v):
-            return
-
-        side    = pos["side"]
-        peak    = float(pos.get("peak_price", pos["entry_price"]))
-        trail_m = float(params.get("trail_atr_mult", 1.0))
-
-        if side == "LONG" and mark > peak:
-            new_sl = self.client.safe_price(sym, mark - atr_v * trail_m)
-            if new_sl > (pos.get("sl") or 0):
+                pnl = 0.0
                 try:
-                    self.client.set_tp_sl(sym, sl=new_sl)
-                    with self._lock:
-                        if sym in self.open_positions:
-                            self.open_positions[sym]["sl"]         = new_sl
-                            self.open_positions[sym]["peak_price"] = mark
-                    log.debug(
-                        RC.fmt(RC.TRADE_CLOSED_TRAILING_SL,
-                               symbol=sym, new_sl=f"{new_sl:.4f}",
-                               mark=f"{mark:.4f}", atr=f"{atr_v:.4f}")
-                    )
+                    closed = self.client.get_closed_pnl(sym, limit=3)
+                    if closed:
+                        pnl = float(closed[0].get("closedPnl", 0))
                 except Exception:
                     pass
-
-        elif side == "SHORT" and mark < peak:
-            new_sl = self.client.safe_price(sym, mark + atr_v * trail_m)
-            if new_sl < (pos.get("sl") or 999_999_999):
-                try:
-                    self.client.set_tp_sl(sym, sl=new_sl)
-                    with self._lock:
-                        if sym in self.open_positions:
-                            self.open_positions[sym]["sl"]         = new_sl
-                            self.open_positions[sym]["peak_price"] = mark
-                    log.debug(
-                        RC.fmt(RC.TRADE_CLOSED_TRAILING_SL,
-                               symbol=sym, new_sl=f"{new_sl:.4f}",
-                               mark=f"{mark:.4f}", atr=f"{atr_v:.4f}")
-                    )
-                except Exception:
-                    pass
-
-    def _handle_external_close(self, sym: str, pos: Dict, mark: float) -> None:
-        """
-        Posición cerrada externamente (TP/SL hit, liquidación, cierre manual).
-        Limpia estado interno y notifica.
-        """
-        pnl = 0.0
-        try:
-            closed = self.client.get_closed_pnl(sym, limit=3)
-            if closed:
-                pnl = float(closed[0].get("closedPnl", 0))
-        except Exception:
-            pass
-
-        reason  = RC.TRADE_CLOSED_TP if pnl >= 0 else RC.TRADE_CLOSED_SL
-        st      = self.learner.record_close(
-            pos["trade_id"], mark, pnl, reason
-        ) or pos.get("strategy_type", "NORMAL")
-        self.risk_mgr.on_close(sym, pnl, strategy_type=st)
-
-        dur_s  = int(time.time()) - pos.get("open_ts", int(time.time()))
-        risk_s = self.risk_mgr.get_status()
-        self.tg.send(
-            f"{'✅' if pnl>=0 else '❌'} <b>CERRADO {sym}</b>  [{reason}]\n"
-            f"Estrategia: [{st}]  x{pos.get('leverage','?')}\n"
-            f"PnL: <code>{pnl:+.2f} USDT</code>  "
-            f"Duración: {dur_s//60}m{dur_s%60}s\n"
-            f"Balance: {self._get_balance():.2f} USDT\n"
-            f"📊 DD hoy: {risk_s['daily_pnl']:+.2f} | "
-            f"Cons: {risk_s['consecutive_losses']}"
-        )
-        log.info(
-            RC.fmt(reason, symbol=sym,
-                   pnl=f"{pnl:+.2f}", dur=f"{dur_s//60}m",
-                   strategy=st)
-        )
-        with self._lock:
-            self.open_positions.pop(sym, None)
-
-    def _execute_atm_action(
-        self,
-        sym:           str,
-        pos:           Dict,
-        action:        str,
-        new_sl:        Optional[float],
-        reasoning:     str,
-        wakeup_reason: str,
-        mark:          float,
-        confidence:    float,
-    ) -> None:
-        """
-        Ejecuta la acción ATM ordenada por la IA.
-        Todos los branches usan RC para logs y Telegram.
-
-        Acciones:
-          HOLD                 → no tocar nada
-          MOVE_SL_TO_BREAKEVEN → mover SL al precio de entrada
-          TRAIL_STOP           → actualizar SL a new_sl (validado)
-          PARTIAL_CLOSE        → cerrar ~50% de la posición
-          CLOSE                → cerrar posición completa
-        """
-        strategy  = pos.get("strategy_type", "NORMAL")
-        entry     = float(pos.get("entry_price", mark) or mark)
-        side      = pos.get("side", "LONG")
-        leverage  = int(pos.get("leverage", 1) or 1)
-        qty       = float(pos.get("qty", 0) or 0)
-        atr_v     = float(pos.get("atr") or 0)
-        pnl_usdt  = ((mark - entry) if side == "LONG" else (entry - mark)) * qty
-        is_profit = pnl_usdt > 0
-
-        # Ícono de urgencia para el mensaje Telegram
-        urgency = (
-            "🚨" if wakeup_reason in (RC.ATM_WAKEUP_EMERGENCY_VOLATILITY,
-                                       RC.ATM_WAKEUP_EMERGENCY_NEWS)
-            else "⏰"
-        )
-
-        # ── HOLD ─────────────────────────────────────────────────────────────
-        if action == "HOLD":
-            log.info(
-                RC.fmt(RC.ATM_ACTION_HOLD,
-                       symbol=sym, strategy=strategy,
-                       wakeup=wakeup_reason.split("_")[-1],
-                       conf=f"{confidence:.0%}",
-                       pnl=f"{pnl_usdt:+.2f}",
-                       reason=reasoning[:60])
-            )
-            return
-
-        # ── MOVE_SL_TO_BREAKEVEN ──────────────────────────────────────────────
-        elif action == "MOVE_SL_TO_BREAKEVEN":
-            if not is_profit:
-                log.warning(
-                    RC.fmt(RC.ATM_SL_VALIDATION_FAILED,
-                           symbol=sym,
-                           reason="PnL negativo: no se puede mover SL a BE",
-                           pnl=f"{pnl_usdt:+.2f}")
-                )
-                return
-            if pos.get("sl_at_breakeven", False):
-                log.debug(f"ATM [{sym}] SL ya está en BE — ignorando")
-                return
-
-            be_price   = self.client.safe_price(sym, entry)
-            current_sl = pos.get("sl")
-            # Solo si el nuevo SL es más favorable que el actual
-            sl_improves = (
-                current_sl is None or
-                (side == "LONG"  and be_price > (current_sl or 0)) or
-                (side == "SHORT" and be_price < (current_sl or 999_999_999))
-            )
-            if not sl_improves:
-                log.debug(f"ATM [{sym}] SL actual ya supera el BE — skip")
-                return
-
-            try:
-                self.client.set_tp_sl(sym, sl=be_price)
+                reason   = RC.TRADE_CLOSED_TP if pnl >= 0 else RC.TRADE_CLOSED_SL
+                mark_now = self.client.get_mark_price(sym) or pos["entry_price"]
                 with self._lock:
-                    if sym in self.open_positions:
-                        self.open_positions[sym]["sl"]             = be_price
-                        self.open_positions[sym]["sl_at_breakeven"] = True
-                log.info(
-                    RC.fmt(RC.ATM_ACTION_MOVE_SL_BREAKEVEN,
-                           symbol=sym, be=f"{be_price:.4f}",
-                           pnl=f"{pnl_usdt:+.2f}",
-                           strategy=strategy)
-                )
-                self.tg.send(
-                    f"{urgency} <b>[{RC.ATM_ACTION_MOVE_SL_BREAKEVEN}]</b>\n"
-                    f"Par: <b>{sym}</b>  [{strategy}]  x{leverage}\n"
-                    f"SL → Breakeven: <code>{be_price:.4f}</code>\n"
-                    f"PnL actual: <code>{pnl_usdt:+.2f} USDT</code>\n"
-                    f"Wakeup: <code>{wakeup_reason}</code>\n"
-                    f"🤖 {reasoning[:140]}"
-                )
-            except Exception as e:
-                log.error(f"ATM [{sym}] set_tp_sl BE: {e}")
-
-        # ── TRAIL_STOP ────────────────────────────────────────────────────────
-        elif action == "TRAIL_STOP":
-            if new_sl is None:
-                log.warning(
-                    f"ATM [{sym}] TRAIL_STOP sin new_sl → degradando a HOLD"
-                )
-                return
-
-            new_sl_safe = self.client.safe_price(sym, new_sl)
-            current_sl  = pos.get("sl")
-
-            # Validar que el nuevo SL sea más favorable Y no cruce el precio
-            sl_valid = (
-                (side == "LONG"
-                 and new_sl_safe > (current_sl or 0)
-                 and new_sl_safe < mark) or
-                (side == "SHORT"
-                 and new_sl_safe < (current_sl or 999_999_999)
-                 and new_sl_safe > mark)
-            )
-            if not sl_valid:
-                log.warning(
-                    RC.fmt(RC.ATM_SL_VALIDATION_FAILED,
-                           symbol=sym,
-                           side=side,
-                           new_sl=f"{new_sl_safe:.4f}",
-                           current_sl=f"{current_sl}",
-                           mark=f"{mark:.4f}",
-                           reason="nuevo SL no mejora el actual o cruza el precio")
-                )
-                return
-
-            try:
-                self.client.set_tp_sl(sym, sl=new_sl_safe)
-                with self._lock:
-                    if sym in self.open_positions:
-                        self.open_positions[sym]["sl"]         = new_sl_safe
-                        self.open_positions[sym]["peak_price"] = mark
-                log.info(
-                    RC.fmt(RC.ATM_ACTION_TRAIL_STOP,
-                           symbol=sym, new_sl=f"{new_sl_safe:.4f}",
-                           mark=f"{mark:.4f}",
-                           conf=f"{confidence:.0%}",
-                           strategy=strategy)
-                )
-                self.tg.send(
-                    f"{urgency} <b>[{RC.ATM_ACTION_TRAIL_STOP}]</b>\n"
-                    f"Par: <b>{sym}</b>  [{strategy}]  x{leverage}\n"
-                    f"Trailing SL → <code>{new_sl_safe:.4f}</code>\n"
-                    f"Precio actual: <code>{mark:.4f}</code>\n"
-                    f"PnL: <code>{pnl_usdt:+.2f} USDT</code>\n"
-                    f"Wakeup: <code>{wakeup_reason}</code>\n"
-                    f"🤖 {reasoning[:140]}"
-                )
-            except Exception as e:
-                log.error(f"ATM [{sym}] set_tp_sl TRAIL: {e}")
-
-        # ── PARTIAL_CLOSE ─────────────────────────────────────────────────────
-        elif action == "PARTIAL_CLOSE":
-            if qty <= 0:
-                log.warning(f"ATM [{sym}] PARTIAL_CLOSE qty=0 → skip")
-                return
-
-            # Cerrar ~50 % redondeado al step válido del exchange
-            close_qty, _ = self.client.safe_qty(sym, qty * 0.5)
-            if close_qty <= 0:
-                log.warning(
-                    f"ATM [{sym}] PARTIAL_CLOSE safe_qty=0 "
-                    f"(raw={qty*0.5:.6f}) → skip"
-                )
-                return
-
-            close_side = "Sell" if side == "LONG" else "Buy"
-            try:
-                resp = self.client.place_order(
-                    sym, close_side, close_qty, reduce_only=True
-                )
-                rc_code = resp.get("retCode", -1)
-                if rc_code == 0:
-                    remaining  = qty - close_qty
-                    pnl_partial = pnl_usdt * (close_qty / qty)
-                    with self._lock:
-                        if sym in self.open_positions:
-                            self.open_positions[sym]["qty"] = remaining
+                    pos = self.open_positions.get(sym)
+                if pos:
+                    st = self.learner.record_close(
+                        pos["trade_id"], mark_now, pnl, reason
+                    ) or pos.get("strategy_type","NORMAL")
+                    self.risk_mgr.on_close(sym, pnl, strategy_type=st)
+                    dur_s   = int(time.time()) - pos.get("open_ts", int(time.time()))
+                    risk_s  = self.risk_mgr.get_status()
+                    # ── "trades": posición cerrada por TP/SL en el exchange ────
+                    if notify_prefs.is_enabled("trades"):
+                        self.tg.send(
+                            f"{'✅' if pnl>=0 else '❌'} <b>CERRADO {sym}</b>  [{reason}]\n"
+                            f"PnL: <code>{pnl:+.2f} USDT</code>  "
+                            f"Duración: {dur_s//60}m{dur_s%60}s\n"
+                            f"Balance: {self._get_balance():.2f} USDT\n"
+                            f"📊 DD hoy: {risk_s['daily_pnl']:+.2f} | "
+                            f"Cons: {risk_s['consecutive_losses']}"
+                        )
                     log.info(
-                        RC.fmt(RC.ATM_ACTION_PARTIAL_CLOSE,
-                               symbol=sym,
-                               close_qty=close_qty,
-                               remaining=remaining,
-                               pnl_partial=f"{pnl_partial:+.2f}",
-                               strategy=strategy)
+                        RC.fmt(reason, symbol=sym,
+                               pnl=f"{pnl:+.2f}", dur=f"{dur_s//60}m")
                     )
-                    self.tg.send(
-                        f"{urgency} <b>[{RC.ATM_ACTION_PARTIAL_CLOSE}]</b>\n"
-                        f"Par: <b>{sym}</b>  [{strategy}]  x{leverage}\n"
-                        f"Cerrado 50%: <code>{close_qty}</code> unidades\n"
-                        f"PnL parcial ≈ <code>{pnl_partial:+.2f} USDT</code>\n"
-                        f"Restante: <code>{remaining:.6f}</code>\n"
-                        f"Wakeup: <code>{wakeup_reason}</code>\n"
-                        f"🤖 {reasoning[:140]}"
-                    )
-                else:
-                    log.error(
-                        RC.fmt(RC.API_ORDER_ERROR,
-                               symbol=sym, retcode=rc_code,
-                               msg=resp.get("retMsg","")[:80],
-                               context="ATM_PARTIAL_CLOSE")
-                    )
-            except Exception as e:
-                log.error(f"ATM [{sym}] partial_close: {e}")
-
-        # ── CLOSE ─────────────────────────────────────────────────────────────
-        elif action == "CLOSE":
-            log.info(
-                RC.fmt(RC.ATM_ACTION_CLOSE,
-                       symbol=sym, strategy=strategy,
-                       wakeup=wakeup_reason.split("_")[-1],
-                       conf=f"{confidence:.0%}",
-                       pnl=f"{pnl_usdt:+.2f}",
-                       reason=reasoning[:60])
-            )
-            # Reason code de cierre: más específico según el wakeup
-            if wakeup_reason == RC.ATM_WAKEUP_EMERGENCY_VOLATILITY:
-                close_rc = RC.TRADE_CLOSED_TRAILING_SL
-            elif wakeup_reason == RC.ATM_WAKEUP_EMERGENCY_NEWS:
-                close_rc = RC.TRADE_CLOSED_MANUAL
-            else:
-                close_rc = RC.TRADE_CLOSED_MANUAL
-
-            # Notificar ANTES de cerrar (por si el cierre falla)
-            self.tg.send(
-                f"{urgency} <b>[{RC.ATM_ACTION_CLOSE}]</b>  IA Decision\n"
-                f"Par: <b>{sym}</b>  [{strategy}]  x{leverage}\n"
-                f"Wakeup: <code>{wakeup_reason}</code>\n"
-                f"PnL antes de cierre: <code>{pnl_usdt:+.2f} USDT</code>\n"
-                f"Confianza IA: {confidence:.0%}\n"
-                f"🤖 {reasoning[:180]}"
-            )
-            self.try_close_trade(sym, reason=close_rc)
+                    with self._lock:
+                        self.open_positions.pop(sym, None)
+        except Exception as e:
+            log.debug(f"_check_position {sym}: {e}")
 
     # ══════════════════════════════════════════════════════
     #  ESCÁNER DE MERCADO
@@ -1645,7 +1268,9 @@ class AutonomousBot:
                                 f"score={o['composite_score']:+.2f}  "
                                 f"conf={o['confidence']:.0%}  {smc}"
                             )
-                        self.tg.send("\n".join(lines))
+                        # ── TASK 1: "signals" — Top oportunidades SMC ─────────
+                        if notify_prefs.is_enabled("signals"):
+                            self.tg.send("\n".join(lines))
                         for o in opps:
                             if not self.running:
                                 break
@@ -1674,7 +1299,9 @@ class AutonomousBot:
     def stop(self) -> None:
         self.running = False
         self.news.stop()
-        self.tg.send(f"⛔ <b>[{RC.SYSTEM_BOT_STOPPED}]</b>")
+        # ── "risk": notificación de parada del bot ───────────────────────────
+        if notify_prefs.is_enabled("risk"):
+            self.tg.send(f"⛔ <b>[{RC.SYSTEM_BOT_STOPPED}]</b>")
         log.info(RC.fmt(RC.SYSTEM_BOT_STOPPED))
 
     def get_status(self) -> Dict:
@@ -1683,34 +1310,21 @@ class AutonomousBot:
         risk_s = self.risk_mgr.get_status()
         cb_s   = self.api_cb.get_status()
         freeze_on, freeze_evt = self.news.is_news_freeze_active()
-        now    = time.time()
 
         with self._lock:
             poss = list(self.open_positions.values())
-
-        # Enriquecer cada posición con info del próximo despertar ATM
-        poss_enriched = []
-        for p in poss:
-            p_copy = dict(p)
-            next_ts = int(p.get("next_eval_ts", 0))
-            p_copy["atm_next_eval_in_s"]  = max(0, next_ts - now)
-            p_copy["atm_next_eval_at_utc"] = (
-                time.strftime("%H:%M:%S UTC", time.gmtime(next_ts))
-                if next_ts > 0 else "N/A"
-            )
-            poss_enriched.append(p_copy)
 
         return {
             "running":        self.running,
             "paper_mode":     PAPER_TRADING,
             "balance_usdt":   round(bal, 2),
-            "open_positions": len(poss_enriched),
-            "positions":      poss_enriched,
+            "open_positions": len(poss),
+            "positions":      poss,
             "performance":    perf,
             "params":         self.learner.get_params(),
             "risk":           risk_s,
             "news":           self.news.get_status(),
-            "ts":             int(now),
+            "ts":             int(time.time()),
             "ai_filter":      ai_filter.get_stats(),
             "leverage_config":{
                 "bot_max":  BOT_MAX_LEVERAGE,
@@ -1728,12 +1342,6 @@ class AutonomousBot:
                 "strategy_cooldowns":  risk_s.get("strategy", {}),
                 "max_exposure_pct":    risk_s["max_exposure_pct"],
                 "consecutive_losses":  risk_s["consecutive_losses"],
-            },
-            # ── ATM Event-Driven config ────────────────────────────────────────
-            "atm_config": {
-                "monitor_tick_sec":        MONITOR_TICK_SEC,
-                "emergency_move_pct":      ATM_EMERGENCY_PRICE_MOVE_PCT,
-                "timeframes":              STRATEGY_TIMEFRAME_MIN,
             },
         }
 
@@ -1767,21 +1375,23 @@ class AutonomousBot:
             if v["trades"] > 0
         )
 
-        self.tg.send(
-            f"📈 <b>Resumen diario</b>\n"
-            f"Trades: {perf['total_trades']}  WR: {perf['win_rate']:.1f}%\n"
-            f"PnL hoy: {risk_s['daily_pnl']:+.2f} USDT  "
-            f"{'🔒 LOCKED' if risk_s['dd_locked'] else '✅'}\n"
-            f"PnL total: {perf['total_pnl']:+.2f} USDT\n"
-            f"Mejor: +{perf['best_trade']:.2f}  Peor: {perf['worst_trade']:.2f}\n"
-            f"Balance: {self._get_balance():.2f} USDT\n"
-            + (f"\n<b>Por estrategia:</b>\n{strat_lines}\n" if strat_lines else "") +
-            f"\n<b>Kill-Switches:</b>\n"
-            f"  API CB: {'🔴 ACTIVO' if cb_s['active'] else '✅'} | "
-            f"Cons. losses: {risk_s['consecutive_losses']}\n"
-            f"\n🤖 IA: {ai_s['approved']} aprobados, "
-            f"{ai_s['rejected']} rechazados ({ai_s['approval_rate']:.1f}%)"
-        )
+        # ── "performance": resumen diario de rendimiento ──────────────────────
+        if notify_prefs.is_enabled("performance"):
+            self.tg.send(
+                f"📈 <b>Resumen diario</b>\n"
+                f"Trades: {perf['total_trades']}  WR: {perf['win_rate']:.1f}%\n"
+                f"PnL hoy: {risk_s['daily_pnl']:+.2f} USDT  "
+                f"{'🔒 LOCKED' if risk_s['dd_locked'] else '✅'}\n"
+                f"PnL total: {perf['total_pnl']:+.2f} USDT\n"
+                f"Mejor: +{perf['best_trade']:.2f}  Peor: {perf['worst_trade']:.2f}\n"
+                f"Balance: {self._get_balance():.2f} USDT\n"
+                + (f"\n<b>Por estrategia:</b>\n{strat_lines}\n" if strat_lines else "") +
+                f"\n<b>Kill-Switches:</b>\n"
+                f"  API CB: {'🔴 ACTIVO' if cb_s['active'] else '✅'} | "
+                f"Cons. losses: {risk_s['consecutive_losses']}\n"
+                f"\n🤖 IA: {ai_s['approved']} aprobados, "
+                f"{ai_s['rejected']} rechazados ({ai_s['approval_rate']:.1f}%)"
+            )
 
 
 # ── Entry point ────────────────────────────────────────────────────────────────

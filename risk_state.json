@@ -1,5 +1,5 @@
 {
-  "daily_pnl": -43.2071,
+  "daily_pnl": 284.7246,
   "day_start_ts": 1772841600,
   "dd_locked": false,
   "dd_unlock_ts": 0,
@@ -20,5 +20,5 @@
       "cooldown_until": 0.0
     }
   },
-  "saved_at": 1772904351
+  "saved_at": 1772923460
 }
