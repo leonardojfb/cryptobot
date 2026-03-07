@@ -1,36 +1,29 @@
 """
-analysis_engine_bybit.py  v3  — Motor SNIPER + AGRESIVO
-═══════════════════════════════════════════════════════
-OBJETIVO: Máximo profit en mínimo tiempo.
+analysis_engine_bybit.py  v4  — Motor SMC (Smart Money Concepts)
+═══════════════════════════════════════════════════════════════════
+Filosofía: Seguir a las instituciones, no al retail.
 
-ESTRATEGIAS IMPLEMENTADAS:
-  1. MOMENTUM SCALPING  — entra en breakouts con volumen explosivo (TF bajos)
-  2. TREND RIDING       — sigue tendencia confirmada multi-TF (mayor duración)
-  3. SQUEEZE BREAKOUT   — detecta compresión BB/Keltner y entra en la explosión
-  4. DIVERGENCE PLAY    — RSI/MACD divergencia con precio (reversals precisos)
-  5. ORDERBOOK SWEEP    — detecta desequilibrio extremo bid/ask en tiempo real
+CONCEPTOS SMC IMPLEMENTADOS:
+  1. ORDER BLOCKS          — Última vela bajista antes de impulso alcista (y viceversa)
+  2. FAIR VALUE GAPS       — Imbalances entre high[i-2] y low[i] (áreas de reentry institucional)
+  3. LIQUIDITY SWEEPS      — Barrido de máximos/mínimos anteriores antes de reversión
+  4. VWAP RETEST           — Rebotes sobre/bajo VWAP (precio justo institucional)
+  5. CHANGE OF CHARACTER   — ChoCH: primer HL en downtrend / LH en uptrend (señal de reversión)
+  6. BREAK OF STRUCTURE    — BoS: continuación de tendencia confirmada
+  7. PREMIUM / DISCOUNT    — OB's en discount (zona compra) o premium (zona venta)
+  8. INDUCEMENT             — Barrido de liquidez antes del verdadero movimiento
 
-TIMEFRAMES:
-  Macro (dirección): 4h, 6h, 12h, 1D, 1W
-  Mid (momentum):    30m, 1h, 2h
-  Entry (timing):    1m, 3m, 5m, 15m
+EMAs INSTITUCIONALES: 7, 25, 99 (vs retail 7/21/50/200)
 
-INDICADORES (13):
-  Tendencia   : EMA 7/21/50/200, Golden/Death cross, SuperTrend(10,3), Ichimoku
-  Momentum    : RSI(14)+divergencia, StochRSI(14,14,3,3), MACD(12,26,9)
-  Volatilidad : Bollinger(20,2), Keltner(20,2) → Squeeze detector
-  Precio      : Williams%R(14), Pivot S/R, Estructura HH/HL
-  Volumen     : OBV, MFI(14), Volume spike detector, VWAP
-  Order flow  : Bid/Ask imbalance top-25
-
-SISTEMA DE SEÑAL MULTINIVEL:
-  - score_tf()      → -10 a +10 por timeframe
-  - analyze_symbol() → composite score ponderado
-  - TRES modos de entrada según condición de mercado:
-      AGGRESSIVE: squeeze detectado → umbral reducido a 2.5
-      MOMENTUM:   volumen 3x + tendencia clara → umbral 3.0
-      STANDARD:   análisis normal → umbral 4.0
-  - Señal se genera si macro NO contradice (no requiere alineación perfecta)
+SCORING SMC (-10 a +10):
+  - Order Block hit:        ±3.0
+  - FVG fill:               ±2.5
+  - Liquidity Sweep + reversal: ±3.5
+  - VWAP retest:            ±2.0
+  - BoS confirmado:         ±2.0
+  - ChoCH detección:        ±1.5
+  - EMA confluence (7/25/99): ±2.5
+  - Orderbook imbalance:    ±1.5
 """
 
 import time
@@ -40,7 +33,7 @@ from typing import Any, Dict, List, Optional, Tuple
 import pandas as pd
 import numpy as np
 
-log = logging.getLogger("analysis")
+log = logging.getLogger("analysis_smc")
 
 # ══════════════════════════════════════════════════════════
 #  CONFIGURACIÓN DE TIMEFRAMES
@@ -65,13 +58,12 @@ MACRO_TF = [tf for tf, c in TF_CONFIG.items() if c["category"] == "macro"]
 MID_TF   = [tf for tf, c in TF_CONFIG.items() if c["category"] == "mid"]
 ENTRY_TF = [tf for tf, c in TF_CONFIG.items() if c["category"] == "entry"]
 
-# Modos de entrada
-MODE_AGGRESSIVE = "AGGRESSIVE"   # squeeze/breakout  → umbral 2.5
-MODE_MOMENTUM   = "MOMENTUM"     # vol spike+trend   → umbral 3.0
-MODE_STANDARD   = "STANDARD"     # análisis normal   → umbral 4.0
+MODE_AGGRESSIVE = "AGGRESSIVE"
+MODE_MOMENTUM   = "MOMENTUM"
+MODE_STANDARD   = "STANDARD"
 
 # ══════════════════════════════════════════════════════════
-#  INDICADORES
+#  UTILIDADES BÁSICAS
 # ══════════════════════════════════════════════════════════
 
 def to_df(klines: List[Dict]) -> pd.DataFrame:
@@ -88,10 +80,19 @@ def to_df(klines: List[Dict]) -> pd.DataFrame:
 def _ema(s: pd.Series, p: int) -> pd.Series:
     return s.ewm(span=p, adjust=False).mean()
 
+def _atr_series(df: pd.DataFrame, p: int = 14) -> pd.Series:
+    pc = df["close"].shift(1)
+    tr = pd.concat([
+        (df["high"] - df["low"]).abs(),
+        (df["high"] - pc).abs(),
+        (df["low"]  - pc).abs(),
+    ], axis=1).max(axis=1)
+    return tr.ewm(alpha=1 / p, adjust=False).mean()
+
 def _rsi(s: pd.Series, p: int = 14) -> pd.Series:
     d = s.diff()
-    g = d.clip(lower=0).ewm(alpha=1/p, adjust=False).mean()
-    l = (-d.clip(upper=0)).ewm(alpha=1/p, adjust=False).mean()
+    g = d.clip(lower=0).ewm(alpha=1 / p, adjust=False).mean()
+    l = (-d.clip(upper=0)).ewm(alpha=1 / p, adjust=False).mean()
     return 100 - (100 / (1 + g / l.replace(0, np.nan)))
 
 def _macd(s: pd.Series, fast=12, slow=26, sig=9):
@@ -100,71 +101,54 @@ def _macd(s: pd.Series, fast=12, slow=26, sig=9):
     return ml, ms, ml - ms
 
 def _bollinger(s: pd.Series, p=20, k=2.0):
-    m = s.rolling(p).mean()
+    m  = s.rolling(p).mean()
     sd = s.rolling(p).std()
-    return m + k*sd, m, m - k*sd
-
-def _keltner(df: pd.DataFrame, p=20, mult=1.5):
-    mid = _ema(df["close"], p)
-    a   = _atr_series(df, p)
-    return mid + mult*a, mid, mid - mult*a
-
-def _atr_series(df: pd.DataFrame, p=14) -> pd.Series:
-    pc = df["close"].shift(1)
-    tr = pd.concat([(df["high"]-df["low"]).abs(),
-                    (df["high"]-pc).abs(),
-                    (df["low"]-pc).abs()], axis=1).max(axis=1)
-    return tr.ewm(alpha=1/p, adjust=False).mean()
-
-def _stoch_rsi(s: pd.Series, rp=14, sp=14, sk=3, sd=3):
-    r = _rsi(s, rp)
-    lo, hi = r.rolling(sp).min(), r.rolling(sp).max()
-    k = 100 * (r - lo) / (hi - lo + 1e-10)
-    ks = k.rolling(sk).mean()
-    return ks, ks.rolling(sd).mean()
-
-def _williams_r(df: pd.DataFrame, p=14) -> pd.Series:
-    hi = df["high"].rolling(p).max()
-    lo = df["low"].rolling(p).min()
-    return -100 * (hi - df["close"]) / (hi - lo + 1e-10)
-
-def _obv(df: pd.DataFrame) -> pd.Series:
-    return (np.sign(df["close"].diff().fillna(0)) * df["volume"]).cumsum()
-
-def _mfi(df: pd.DataFrame, p=14) -> pd.Series:
-    tp  = (df["high"] + df["low"] + df["close"]) / 3
-    mf  = tp * df["volume"]
-    pos = mf.where(tp > tp.shift(1), 0).rolling(p).sum()
-    neg = mf.where(tp < tp.shift(1), 0).rolling(p).sum()
-    return 100 - 100 / (1 + pos / neg.replace(0, np.nan))
+    return m + k * sd, m, m - k * sd
 
 def _vwap(df: pd.DataFrame) -> float:
     pv = (df["close"] * df["volume"]).sum()
     v  = df["volume"].sum()
     return float(pv / v) if v > 0 else float(df["close"].iloc[-1])
 
+def _obv(df: pd.DataFrame) -> pd.Series:
+    return (np.sign(df["close"].diff().fillna(0)) * df["volume"]).cumsum()
+
 def _supertrend(df: pd.DataFrame, p=10, mult=3.0) -> Tuple[pd.Series, pd.Series]:
-    a = _atr_series(df, p)
+    a   = _atr_series(df, p)
     hl2 = (df["high"] + df["low"]) / 2
     up  = hl2 + mult * a
     dn  = hl2 - mult * a
     st  = pd.Series(np.nan, index=df.index)
     dir_= pd.Series(1, index=df.index, dtype=int)
     for i in range(1, len(df)):
-        ub = up.iloc[i] if up.iloc[i] < up.iloc[i-1] or df["close"].iloc[i-1] > up.iloc[i-1] else up.iloc[i-1]
-        lb = dn.iloc[i] if dn.iloc[i] > dn.iloc[i-1] or df["close"].iloc[i-1] < dn.iloc[i-1] else dn.iloc[i-1]
+        ub = up.iloc[i] if (up.iloc[i] < up.iloc[i-1] or df["close"].iloc[i-1] > up.iloc[i-1]) else up.iloc[i-1]
+        lb = dn.iloc[i] if (dn.iloc[i] > dn.iloc[i-1] or df["close"].iloc[i-1] < dn.iloc[i-1]) else dn.iloc[i-1]
         if   dir_.iloc[i-1] == -1 and df["close"].iloc[i] > ub: dir_.iat[i] = 1
         elif dir_.iloc[i-1] ==  1 and df["close"].iloc[i] < lb: dir_.iat[i] = -1
         else: dir_.iat[i] = dir_.iloc[i-1]
         st.iat[i] = lb if dir_.iat[i] == 1 else ub
     return st, dir_
 
-def _ichimoku(df: pd.DataFrame) -> Dict:
-    t  = (df["high"].rolling(9).max()  + df["low"].rolling(9).min())  / 2
-    k  = (df["high"].rolling(26).max() + df["low"].rolling(26).min()) / 2
-    sa = ((t + k) / 2).shift(26)
-    sb = ((df["high"].rolling(52).max() + df["low"].rolling(52).min()) / 2).shift(26)
-    return {"tenkan": t, "kijun": k, "senkou_a": sa, "senkou_b": sb}
+def _market_structure(df: pd.DataFrame) -> str:
+    if len(df) < 20:
+        return "ranging"
+    closes = df["close"].tail(20).values
+    peaks   = [closes[i] for i in range(1, len(closes)-1)
+               if closes[i] > closes[i-1] and closes[i] > closes[i+1]]
+    troughs = [closes[i] for i in range(1, len(closes)-1)
+               if closes[i] < closes[i-1] and closes[i] < closes[i+1]]
+    if len(peaks) >= 2 and len(troughs) >= 2:
+        if peaks[-1] > peaks[-2] and troughs[-1] > troughs[-2]: return "bullish"
+        if peaks[-1] < peaks[-2] and troughs[-1] < troughs[-2]: return "bearish"
+    return "ranging"
+
+def _volume_spike(df: pd.DataFrame) -> Tuple[bool, float]:
+    if len(df) < 20:
+        return False, 1.0
+    vol_ma  = float(df["volume"].rolling(20).mean().iloc[-1])
+    vol_now = float(df["volume"].iloc[-1])
+    ratio   = vol_now / vol_ma if vol_ma > 0 else 1.0
+    return ratio >= 2.5, round(ratio, 2)
 
 def _pivot_sr(df: pd.DataFrame) -> Dict:
     if len(df) < 3:
@@ -173,251 +157,620 @@ def _pivot_sr(df: pd.DataFrame) -> Dict:
     p = (h + l + c) / 3
     return {"P": p, "R1": 2*p-l, "R2": p+(h-l), "S1": 2*p-h, "S2": p-(h-l)}
 
-def _market_structure(df: pd.DataFrame) -> str:
-    if len(df) < 20:
-        return "ranging"
-    closes = df["close"].tail(20).values
-    peaks   = [closes[i] for i in range(1, len(closes)-1) if closes[i]>closes[i-1] and closes[i]>closes[i+1]]
-    troughs = [closes[i] for i in range(1, len(closes)-1) if closes[i]<closes[i-1] and closes[i]<closes[i+1]]
-    if len(peaks) >= 2 and len(troughs) >= 2:
-        if peaks[-1] > peaks[-2] and troughs[-1] > troughs[-2]: return "bullish"
-        if peaks[-1] < peaks[-2] and troughs[-1] < troughs[-2]: return "bearish"
-    return "ranging"
+# ══════════════════════════════════════════════════════════
+#  SMC CORE — DETECTORES
+# ══════════════════════════════════════════════════════════
 
-def _detect_divergence(df: pd.DataFrame) -> Tuple[str, float]:
+def _detect_order_blocks(df: pd.DataFrame, lookback: int = 20) -> Dict:
     """
-    Detecta divergencias precio vs RSI.
-    Retorna: ("bullish"|"bearish"|"none", fuerza 0-1)
-    """
-    if len(df) < 30:
-        return "none", 0.0
-    closes = df["close"].tail(30)
-    rsi_s  = _rsi(closes, 14).tail(30)
-    # Últimos 2 mínimos de precio vs RSI
-    price_lows = [(i, float(closes.iloc[i])) for i in range(1, len(closes)-1)
-                  if closes.iloc[i] < closes.iloc[i-1] and closes.iloc[i] < closes.iloc[i+1]]
-    if len(price_lows) >= 2:
-        p1, p2 = price_lows[-2], price_lows[-1]
-        r1 = float(rsi_s.iloc[p1[0]])
-        r2 = float(rsi_s.iloc[p2[0]])
-        # Precio hace LL pero RSI hace HL → divergencia alcista
-        if p2[1] < p1[1] and r2 > r1 + 2:
-            strength = min(1.0, (r2 - r1) / 20)
-            return "bullish", round(strength, 2)
-    # Últimos 2 máximos de precio vs RSI
-    price_highs = [(i, float(closes.iloc[i])) for i in range(1, len(closes)-1)
-                   if closes.iloc[i] > closes.iloc[i-1] and closes.iloc[i] > closes.iloc[i+1]]
-    if len(price_highs) >= 2:
-        p1, p2 = price_highs[-2], price_highs[-1]
-        r1 = float(rsi_s.iloc[p1[0]])
-        r2 = float(rsi_s.iloc[p2[0]])
-        # Precio hace HH pero RSI hace LH → divergencia bajista
-        if p2[1] > p1[1] and r2 < r1 - 2:
-            strength = min(1.0, (r1 - r2) / 20)
-            return "bearish", round(strength, 2)
-    return "none", 0.0
+    Order Block (OB): última vela impulsiva de origen antes de un movimiento fuerte.
 
-def _volume_spike(df: pd.DataFrame) -> Tuple[bool, float]:
-    """Detecta spike de volumen (>2.5x media). Retorna (is_spike, ratio)"""
-    if len(df) < 20:
-        return False, 1.0
-    vol_ma = float(df["volume"].rolling(20).mean().iloc[-1])
-    vol_now = float(df["volume"].iloc[-1])
-    ratio = vol_now / vol_ma if vol_ma > 0 else 1.0
-    return ratio >= 2.5, round(ratio, 2)
+    Bullish OB: última vela BAJISTA antes de un impulso alcista significativo.
+    → El cuerpo de esa vela (low–high) es zona de demanda institucional.
+
+    Bearish OB: última vela ALCISTA antes de un impulso bajista significativo.
+    → El cuerpo de esa vela (low–high) es zona de oferta institucional.
+
+    Retorna:
+      {"bullish_ob": {"high": float, "low": float, "age": int} | None,
+       "bearish_ob": {"high": float, "low": float, "age": int} | None,
+       "price_in_bullish_ob": bool,
+       "price_in_bearish_ob": bool}
+    """
+    if len(df) < lookback + 5:
+        return {"bullish_ob": None, "bearish_ob": None,
+                "price_in_bullish_ob": False, "price_in_bearish_ob": False}
+
+    price   = float(df["close"].iloc[-1])
+    window  = df.tail(lookback + 5).reset_index(drop=True)
+    n       = len(window)
+
+    bullish_ob = None
+    bearish_ob = None
+
+    # Umbral de "impulso significativo": ATR * 1.5
+    atr_val = float(_atr_series(df).iloc[-1])
+    impulse_threshold = atr_val * 1.5
+
+    for i in range(2, n - 2):
+        # Impulso alcista fuerte (3 velas desde i+1)
+        candle_move_up = float(window["close"].iloc[i+1]) - float(window["open"].iloc[i+1])
+        if candle_move_up > impulse_threshold:
+            # La vela en i es bajista → Bullish OB
+            if float(window["close"].iloc[i]) < float(window["open"].iloc[i]):
+                ob_low  = float(window["low"].iloc[i])
+                ob_high = float(window["high"].iloc[i])
+                age     = n - 1 - i
+                if bullish_ob is None or age < bullish_ob["age"]:
+                    bullish_ob = {"high": ob_high, "low": ob_low, "age": age,
+                                  "mid": (ob_high + ob_low) / 2}
+
+        # Impulso bajista fuerte
+        candle_move_dn = float(window["open"].iloc[i+1]) - float(window["close"].iloc[i+1])
+        if candle_move_dn > impulse_threshold:
+            # La vela en i es alcista → Bearish OB
+            if float(window["close"].iloc[i]) > float(window["open"].iloc[i]):
+                ob_low  = float(window["low"].iloc[i])
+                ob_high = float(window["high"].iloc[i])
+                age     = n - 1 - i
+                if bearish_ob is None or age < bearish_ob["age"]:
+                    bearish_ob = {"high": ob_high, "low": ob_low, "age": age,
+                                  "mid": (ob_high + ob_low) / 2}
+
+    in_bull_ob = (bullish_ob is not None and
+                  bullish_ob["low"] <= price <= bullish_ob["high"])
+    in_bear_ob = (bearish_ob is not None and
+                  bearish_ob["low"] <= price <= bearish_ob["high"])
+
+    return {
+        "bullish_ob": bullish_ob,
+        "bearish_ob": bearish_ob,
+        "price_in_bullish_ob": in_bull_ob,
+        "price_in_bearish_ob": in_bear_ob,
+    }
+
+
+def _detect_fvg(df: pd.DataFrame, lookback: int = 30) -> Dict:
+    """
+    Fair Value Gap (FVG) / Imbalance:
+    Bullish FVG: low[i] > high[i-2]  → gap alcista, precio puede reentrar
+    Bearish FVG: high[i] < low[i-2]  → gap bajista
+
+    Retorna el FVG más reciente no rellenado y si el precio está en zona de fill.
+    """
+    if len(df) < 5:
+        return {"bullish_fvg": None, "bearish_fvg": None,
+                "price_in_bull_fvg": False, "price_in_bear_fvg": False}
+
+    price  = float(df["close"].iloc[-1])
+    window = df.tail(lookback + 3).reset_index(drop=True)
+    n      = len(window)
+
+    bullish_fvg = None
+    bearish_fvg = None
+
+    for i in range(2, n):
+        gap_high_bull = float(window["low"].iloc[i])
+        gap_low_bull  = float(window["high"].iloc[i-2])
+        if gap_high_bull > gap_low_bull:
+            age = n - 1 - i
+            if bullish_fvg is None or age < bullish_fvg["age"]:
+                bullish_fvg = {
+                    "high": gap_high_bull,
+                    "low":  gap_low_bull,
+                    "mid":  (gap_high_bull + gap_low_bull) / 2,
+                    "age":  age,
+                    "size": gap_high_bull - gap_low_bull,
+                }
+
+        gap_high_bear = float(window["low"].iloc[i-2])
+        gap_low_bear  = float(window["high"].iloc[i])
+        if gap_high_bear > gap_low_bear:
+            age = n - 1 - i
+            if bearish_fvg is None or age < bearish_fvg["age"]:
+                bearish_fvg = {
+                    "high": gap_high_bear,
+                    "low":  gap_low_bear,
+                    "mid":  (gap_high_bear + gap_low_bear) / 2,
+                    "age":  age,
+                    "size": gap_high_bear - gap_low_bear,
+                }
+
+    in_bull_fvg = (bullish_fvg is not None and
+                   bullish_fvg["low"] <= price <= bullish_fvg["high"])
+    in_bear_fvg = (bearish_fvg is not None and
+                   bearish_fvg["low"] <= price <= bearish_fvg["high"])
+
+    return {
+        "bullish_fvg": bullish_fvg,
+        "bearish_fvg": bearish_fvg,
+        "price_in_bull_fvg": in_bull_fvg,
+        "price_in_bear_fvg": in_bear_fvg,
+    }
+
+
+def _liquidity_sweep(df: pd.DataFrame, lookback: int = 30) -> Dict:
+    """
+    Liquidity Sweep (Inducement + Stop Hunt):
+    Las instituciones empujan el precio más allá de máximos/mínimos evidentes
+    para capturar órdenes de stop antes del movimiento real.
+
+    Bullish sweep: precio baja por debajo de mínimos anteriores y CIERRA de vuelta arriba
+    Bearish sweep: precio sube por encima de máximos anteriores y CIERRA de vuelta abajo
+
+    También detecta si el sweep ocurrió en las últimas N velas (señal fresca).
+    """
+    if len(df) < lookback + 5:
+        return {
+            "bullish_sweep": False, "bearish_sweep": False,
+            "sweep_freshness": 0, "sweep_level": None,
+            "equal_highs": None, "equal_lows": None,
+        }
+
+    window = df.tail(lookback).reset_index(drop=True)
+    n      = len(window)
+    price  = float(window["close"].iloc[-1])
+    atr_v  = float(_atr_series(df).iloc[-1])
+
+    # Máximos y mínimos de referencia (excluye las últimas 3 velas = zona activa)
+    ref_highs = window["high"].iloc[:-3]
+    ref_lows  = window["low"].iloc[:-3]
+    swing_high = float(ref_highs.max()) if not ref_highs.empty else price
+    swing_low  = float(ref_lows.min())  if not ref_lows.empty  else price
+
+    last_low   = float(window["low"].iloc[-1])
+    last_high  = float(window["high"].iloc[-1])
+    last_close = float(window["close"].iloc[-1])
+    last_open  = float(window["open"].iloc[-1])
+
+    # Sweep alcista: perforó mínimo previo pero cerró POR ENCIMA del mínimo de referencia
+    bullish_sweep = (
+        last_low < swing_low and        # wicked below
+        last_close > swing_low and      # closed back above
+        last_close > last_open          # vela alcista (absorción)
+    )
+    # Sweep bajista: perforó máximo previo pero cerró POR DEBAJO del máximo de referencia
+    bearish_sweep = (
+        last_high > swing_high and      # wicked above
+        last_close < swing_high and     # closed back below
+        last_close < last_open          # vela bajista (absorción)
+    )
+
+    # Equal Highs/Lows (zonas de liquidez apilada — target institucional)
+    tolerance = atr_v * 0.3
+    highs = window["high"].values
+    lows  = window["low"].values
+    equal_highs = None
+    equal_lows  = None
+    for i in range(len(highs)-4, max(0, len(highs)-lookback), -1):
+        if abs(highs[i] - swing_high) < tolerance:
+            equal_highs = float(highs[i])
+            break
+    for i in range(len(lows)-4, max(0, len(lows)-lookback), -1):
+        if abs(lows[i] - swing_low) < tolerance:
+            equal_lows = float(lows[i])
+            break
+
+    # Freshness: cómo de reciente fue el sweep (1.0 = última vela, 0.0 = viejo)
+    sweep_freshness = 0.0
+    sweep_level     = None
+    if bullish_sweep:
+        sweep_freshness = 1.0
+        sweep_level     = swing_low
+    elif bearish_sweep:
+        sweep_freshness = 1.0
+        sweep_level     = swing_high
+    else:
+        # Buscar sweep en las últimas 5 velas
+        for lag in range(1, min(6, n)):
+            lw = float(window["low"].iloc[-(lag+1)])
+            lc = float(window["close"].iloc[-(lag+1)])
+            lo = float(window["open"].iloc[-(lag+1)])
+            if lw < swing_low and lc > swing_low and lc > lo:
+                sweep_freshness = max(0.1, 1.0 - lag * 0.15)
+                sweep_level     = swing_low
+                bullish_sweep   = True
+                break
+            hw = float(window["high"].iloc[-(lag+1)])
+            hc = float(window["close"].iloc[-(lag+1)])
+            ho = float(window["open"].iloc[-(lag+1)])
+            if hw > swing_high and hc < swing_high and hc < ho:
+                sweep_freshness = max(0.1, 1.0 - lag * 0.15)
+                sweep_level     = swing_high
+                bearish_sweep   = True
+                break
+
+    return {
+        "bullish_sweep":   bullish_sweep,
+        "bearish_sweep":   bearish_sweep,
+        "sweep_freshness": round(sweep_freshness, 2),
+        "sweep_level":     sweep_level,
+        "swing_high":      round(swing_high, 6),
+        "swing_low":       round(swing_low, 6),
+        "equal_highs":     equal_highs,
+        "equal_lows":      equal_lows,
+    }
+
+
+def _vwap_retest(df: pd.DataFrame) -> Dict:
+    """
+    VWAP Retest: precio tocó el VWAP y rebotó (señal de entry de alta precisión).
+    Instituciones usan el VWAP como precio justo de ejecución.
+
+    Bullish retest: precio bajó a VWAP desde arriba y rebotó hacia arriba
+    Bearish retest: precio subió a VWAP desde abajo y rebotó hacia abajo
+    """
+    if len(df) < 10:
+        return {"bullish_retest": False, "bearish_retest": False,
+                "vwap": None, "distance_pct": 0.0}
+
+    vwap_v = _vwap(df)
+    price  = float(df["close"].iloc[-1])
+
+    # Distancia actual al VWAP
+    dist_pct = (price - vwap_v) / vwap_v * 100 if vwap_v > 0 else 0.0
+
+    # Últimas 3 velas para detectar retest
+    recent = df.tail(5)
+    lows   = recent["low"].values
+    highs  = recent["high"].values
+    closes = recent["close"].values
+    opens  = recent["open"].values
+
+    atr_v    = float(_atr_series(df).iloc[-1])
+    tolerance= atr_v * 0.5   # Holgura para considerar "toque" del VWAP
+
+    bullish_retest = False
+    bearish_retest = False
+
+    for i in range(len(closes) - 1):
+        # Toque bullish: vela bajó hasta cerca del VWAP (low dentro del rango)
+        if abs(lows[i] - vwap_v) <= tolerance and closes[i] > vwap_v:
+            # La siguiente vela confirma el rebote
+            if closes[i+1] > closes[i] and closes[i+1] > vwap_v:
+                bullish_retest = True
+
+        # Toque bearish: vela subió hasta cerca del VWAP (high dentro del rango)
+        if abs(highs[i] - vwap_v) <= tolerance and closes[i] < vwap_v:
+            if closes[i+1] < closes[i] and closes[i+1] < vwap_v:
+                bearish_retest = True
+
+    return {
+        "bullish_retest": bullish_retest,
+        "bearish_retest": bearish_retest,
+        "vwap":           round(vwap_v, 6),
+        "distance_pct":   round(dist_pct, 3),
+        "above_vwap":     price > vwap_v,
+    }
+
+
+def _detect_choch_bos(df: pd.DataFrame, lookback: int = 30) -> Dict:
+    """
+    Change of Character (ChoCH) y Break of Structure (BoS).
+
+    BoS alcista:  nuevo HH rompe el último swing high (continuación)
+    BoS bajista:  nuevo LL rompe el último swing low  (continuación)
+    ChoCH alcista: primer HL después de un downtrend  (possible reversión)
+    ChoCH bajista: primer LH después de un uptrend    (possible reversión)
+    """
+    if len(df) < lookback:
+        return {"bos_bullish": False, "bos_bearish": False,
+                "choch_bullish": False, "choch_bearish": False,
+                "last_swing_high": None, "last_swing_low": None}
+
+    window = df.tail(lookback).reset_index(drop=True)
+    n      = len(window)
+    closes = window["close"].values
+    highs  = window["high"].values
+    lows   = window["low"].values
+
+    # Extraer swing points
+    swing_highs = [(i, highs[i]) for i in range(1, n-1)
+                   if highs[i] > highs[i-1] and highs[i] > highs[i+1]]
+    swing_lows  = [(i, lows[i])  for i in range(1, n-1)
+                   if lows[i]  < lows[i-1]  and lows[i]  < lows[i+1]]
+
+    bos_bullish = bos_bearish = choch_bullish = choch_bearish = False
+    last_sh = swing_highs[-1][1] if swing_highs else None
+    last_sl = swing_lows[-1][1]  if swing_lows  else None
+
+    current_high = float(window["high"].iloc[-1])
+    current_low  = float(window["low"].iloc[-1])
+
+    if len(swing_highs) >= 2:
+        prev_sh, last_sh_val = swing_highs[-2][1], swing_highs[-1][1]
+        if current_high > last_sh_val:              # BoS alcista
+            bos_bullish = True
+        elif last_sh_val < prev_sh and current_high > last_sh_val:  # ChoCH
+            choch_bullish = True
+
+    if len(swing_lows) >= 2:
+        prev_sl, last_sl_val = swing_lows[-2][1], swing_lows[-1][1]
+        if current_low < last_sl_val:               # BoS bajista
+            bos_bearish = True
+        elif last_sl_val > prev_sl and current_low < last_sl_val:   # ChoCH
+            choch_bearish = True
+
+    # ChoCH más sofisticado: primera ruptura contraria de estructura
+    if len(swing_lows) >= 3:
+        # Downtrend: últimos 3 LL's — ahora precio por encima del último pivot high
+        if all(swing_lows[i+1][1] < swing_lows[i][1] for i in range(-3, -1)):
+            if len(swing_highs) >= 1 and current_high > swing_highs[-1][1]:
+                choch_bullish = True
+
+    if len(swing_highs) >= 3:
+        # Uptrend: últimos 3 HH's — ahora precio por debajo del último pivot low
+        if all(swing_highs[i+1][1] > swing_highs[i][1] for i in range(-3, -1)):
+            if len(swing_lows) >= 1 and current_low < swing_lows[-1][1]:
+                choch_bearish = True
+
+    return {
+        "bos_bullish":    bos_bullish,
+        "bos_bearish":    bos_bearish,
+        "choch_bullish":  choch_bullish,
+        "choch_bearish":  choch_bearish,
+        "last_swing_high": round(last_sh, 6) if last_sh else None,
+        "last_swing_low":  round(last_sl, 6) if last_sl  else None,
+    }
+
+
+def _premium_discount(df: pd.DataFrame, lookback: int = 50) -> Dict:
+    """
+    Premium / Discount zones:
+    Precio en Discount (< 50% del rango) → zona de compra institucional
+    Precio en Premium  (> 50% del rango) → zona de venta institucional
+
+    Se calcula en base al rango de los últimos N cierres.
+    """
+    if len(df) < lookback:
+        return {"zone": "equilibrium", "pct_in_range": 0.5}
+
+    window   = df.tail(lookback)
+    rng_high = float(window["high"].max())
+    rng_low  = float(window["low"].min())
+    price    = float(df["close"].iloc[-1])
+
+    if rng_high == rng_low:
+        return {"zone": "equilibrium", "pct_in_range": 0.5,
+                "range_high": rng_high, "range_low": rng_low}
+
+    pct = (price - rng_low) / (rng_high - rng_low)
+    zone = "discount" if pct < 0.35 else ("premium" if pct > 0.65 else "equilibrium")
+
+    return {
+        "zone":        zone,
+        "pct_in_range": round(pct, 3),
+        "range_high":  round(rng_high, 6),
+        "range_low":   round(rng_low, 6),
+    }
+
 
 # ══════════════════════════════════════════════════════════
-#  SCORING POR TIMEFRAME
+#  SCORING SMC POR TIMEFRAME
 # ══════════════════════════════════════════════════════════
 
 def score_tf(df: pd.DataFrame, tf_label: str = "") -> Tuple[float, Dict]:
+    """
+    Score SMC de -10 a +10 para un timeframe.
+    Retorna (score, detailed_dict) con todos los datos crudos SMC.
+    """
     cfg_min = TF_CONFIG.get(tf_label, {}).get("min_bars", 60)
     if len(df) < cfg_min:
         return 0.0, {"skip": "not enough bars"}
 
-    c     = df["close"]
-    price = float(c.iloc[-1])
-    score = 0.0
-    det   = {}
+    c      = df["close"]
+    price  = float(c.iloc[-1])
+    score  = 0.0
+    det    = {}
 
-    # ── 1. EMAs ───────────────────────────────────────────
-    e7   = float(_ema(c,   7).iloc[-1])
-    e21  = float(_ema(c,  21).iloc[-1])
-    e50  = float(_ema(c,  50).iloc[-1])
-    e200 = float(_ema(c, 200).iloc[-1]) if len(df) >= 200 else None
+    atr_v = float(_atr_series(df).iloc[-1])
+    det["atr"]   = round(atr_v, 6)
+    det["price"] = round(price, 6)
 
-    if   price > e7 > e21 > e50: ema_s = 3.0
-    elif price < e7 < e21 < e50: ema_s = -3.0
-    elif price > e21 > e50:      ema_s = 1.5
-    elif price < e21 < e50:      ema_s = -1.5
-    elif price > e7:              ema_s = 0.5
-    else:                         ema_s = -0.5
-    if e200:
-        ema_s += 1.0 if price > e200 else -1.0
-    # Golden / Death cross
-    e7p, e21p = float(_ema(c, 7).iloc[-2]), float(_ema(c, 21).iloc[-2])
-    if   e7p <= e21p and e7 > e21: ema_s += 2.0   # golden cross fresco
-    elif e7p >= e21p and e7 < e21: ema_s -= 2.0   # death cross fresco
+    # ── 1. EMAs Institucionales (7, 25, 99) ──────────────────────────────────
+    e7  = float(_ema(c, 7).iloc[-1])
+    e25 = float(_ema(c, 25).iloc[-1])
+    e99 = float(_ema(c, 99).iloc[-1]) if len(df) >= 99 else None
+
+    ema_s = 0.0
+    # Alineación perfecta: precio > 7 > 25 > 99 = confluencia institucional bullish
+    if e99 is not None:
+        if price > e7 > e25 > e99:  ema_s = 2.5
+        elif price < e7 < e25 < e99: ema_s = -2.5
+        elif price > e25 > e99:     ema_s = 1.5
+        elif price < e25 < e99:     ema_s = -1.5
+        elif price > e7 > e25:      ema_s = 0.8
+        elif price < e7 < e25:      ema_s = -0.8
+        else:                        ema_s = 0.2 if price > e99 else -0.2
+    else:
+        if price > e7 > e25: ema_s = 1.5
+        elif price < e7 < e25: ema_s = -1.5
+        elif price > e7:       ema_s = 0.5
+        else:                   ema_s = -0.5
+
+    # Golden/Death cross en EMAs institucionales (7 cruza 25)
+    e7_prev = float(_ema(c, 7).iloc[-2])
+    e25_prev= float(_ema(c, 25).iloc[-2])
+    if e7_prev <= e25_prev and e7 > e25: ema_s += 1.5   # golden cross 7/25
+    elif e7_prev >= e25_prev and e7 < e25: ema_s -= 1.5 # death cross 7/25
+
     score += ema_s
     det["ema_s"] = round(ema_s, 2)
+    det["ema7"]  = round(e7, 6)
+    det["ema25"] = round(e25, 6)
+    det["ema99"] = round(e99, 6) if e99 else None
 
-    # ── 2. SuperTrend ─────────────────────────────────────
+    # ── 2. SuperTrend (10, 3) ─────────────────────────────────────────────────
     _, st_dir = _supertrend(df)
     st_s = 1.5 if int(st_dir.iloc[-1]) == 1 else -1.5
     if int(st_dir.iloc[-1]) != int(st_dir.iloc[-2]):
-        st_s *= 2.0   # flip reciente = señal muy fuerte
+        st_s *= 2.0   # flip = señal fuerte
     score += st_s
-    det["st_s"]   = round(st_s, 2)
+    det["st_s"]  = round(st_s, 2)
     det["st_dir"] = int(st_dir.iloc[-1])
 
-    # ── 3. Ichimoku ───────────────────────────────────────
-    ich = _ichimoku(df)
-    tk  = float(ich["tenkan"].iloc[-1]) if not pd.isna(ich["tenkan"].iloc[-1]) else price
-    kj  = float(ich["kijun"].iloc[-1])  if not pd.isna(ich["kijun"].iloc[-1])  else price
-    idx = -27 if len(df) > 27 else -1
-    sa  = float(ich["senkou_a"].iloc[idx]) if not pd.isna(ich["senkou_a"].iloc[idx]) else price
-    sb  = float(ich["senkou_b"].iloc[idx]) if not pd.isna(ich["senkou_b"].iloc[idx]) else price
-    cloud_top, cloud_bot = max(sa, sb), min(sa, sb)
-    ichi_s = 0.0
-    if   price > cloud_top: ichi_s += 1.5
-    elif price < cloud_bot: ichi_s -= 1.5
-    ichi_s += 0.5 if tk > kj else -0.5
-    ichi_s += 0.3 if sa > sb else -0.3
-    score += ichi_s
-    det["ichi_s"] = round(ichi_s, 2)
+    # ── 3. RSI (solo como contexto, no como señal principal) ─────────────────
+    rsi_v = float(_rsi(c, 14).iloc[-1])
+    # Solo señala zonas extremas como confirmación
+    rsi_confirm = 0.0
+    if rsi_v < 25:   rsi_confirm = 1.0    # extremo OS = confirma bullish SMC
+    elif rsi_v > 75: rsi_confirm = -1.0   # extremo OB = confirma bearish SMC
+    score += rsi_confirm
+    det["rsi"]          = round(rsi_v, 1)
+    det["rsi_confirm"]  = round(rsi_confirm, 2)
 
-    # ── 4. RSI + divergencia ──────────────────────────────
-    rval     = float(_rsi(c, 14).iloc[-1])
-    rval_prev= float(_rsi(c, 14).iloc[-2])
-    if   rval < 20:  rsi_s = 3.0
-    elif rval < 30:  rsi_s = 2.0
-    elif rval < 40:  rsi_s = 0.8
-    elif rval > 80:  rsi_s = -3.0
-    elif rval > 70:  rsi_s = -2.0
-    elif rval > 60:  rsi_s = -0.8
-    else:             rsi_s = 0.0
-    div_type, div_str = _detect_divergence(df)
-    if div_type == "bullish":   rsi_s += 1.5 * div_str
-    elif div_type == "bearish": rsi_s -= 1.5 * div_str
-    score += rsi_s
-    det["rsi"]      = round(rval, 1)
-    det["rsi_s"]    = round(rsi_s, 2)
-    det["div_type"] = div_type
-    det["div_str"]  = div_str
-
-    # ── 5. Stoch RSI ──────────────────────────────────────
-    sk, sd_s = _stoch_rsi(c)
-    skv, sdv = float(sk.iloc[-1]), float(sd_s.iloc[-1])
-    skp, sdp = float(sk.iloc[-2]), float(sd_s.iloc[-2])
-    if   skv < 20 and skv > sdv and skp <= sdp: stoch_s = 2.5
-    elif skv < 20 and skv > sdv:                 stoch_s = 1.2
-    elif skv > 80 and skv < sdv and skp >= sdp: stoch_s = -2.5
-    elif skv > 80 and skv < sdv:                 stoch_s = -1.2
-    else:                                         stoch_s = 0.0
-    score += stoch_s
-    det["stoch_k"] = round(skv, 1)
-    det["stoch_s"] = round(stoch_s, 2)
-
-    # ── 6. MACD ───────────────────────────────────────────
+    # ── 4. MACD momentum ─────────────────────────────────────────────────────
     ml, ms, mh = _macd(c)
-    mhv, mhp = float(mh.iloc[-1]), float(mh.iloc[-2])
-    if   mhv > 0 and mhp <= 0: macd_s = 3.0   # cross alcista
-    elif mhv > 0 and mhv > mhp: macd_s = 1.2
-    elif mhv > 0:               macd_s = 0.5
-    elif mhv < 0 and mhp >= 0: macd_s = -3.0  # cross bajista
-    elif mhv < 0 and mhv < mhp: macd_s = -1.2
-    else:                        macd_s = -0.5
+    mhv, mhp   = float(mh.iloc[-1]), float(mh.iloc[-2])
+    if   mhv > 0 and mhp <= 0: macd_s = 2.0   # cross alcista
+    elif mhv > 0 and mhv > mhp: macd_s = 0.8
+    elif mhv > 0:               macd_s = 0.3
+    elif mhv < 0 and mhp >= 0: macd_s = -2.0  # cross bajista
+    elif mhv < 0 and mhv < mhp: macd_s = -0.8
+    else:                        macd_s = -0.3
     score += macd_s
-    det["macd_hist"] = round(mhv, 6)
-    det["macd_s"]    = round(macd_s, 2)
+    det["macd_s"] = round(macd_s, 2)
 
-    # ── 7. Bollinger + Keltner Squeeze ───────────────────
-    bu, bm, bl = _bollinger(c)
-    ku, km, kl = _keltner(df)
-    buv, blv = float(bu.iloc[-1]), float(bl.iloc[-1])
-    kuv, klv = float(ku.iloc[-1]), float(kl.iloc[-1])
-    bb_s = 0.0
-    if   price <= blv: bb_s = 2.0 if price < klv else 1.5
-    elif price >= buv: bb_s = -2.0 if price > kuv else -1.5
-    # Squeeze: BB dentro de Keltner → energía acumulada
-    squeeze = buv < kuv and blv > klv
-    if squeeze:
-        # Bonus por dirección dentro del squeeze
-        bb_s += 0.5 if price > float(bm.iloc[-1]) else -0.5
-    score += bb_s
-    det["bb_s"]    = round(bb_s, 2)
-    det["squeeze"] = squeeze
+    # ── 5. Order Blocks ───────────────────────────────────────────────────────
+    ob_data = _detect_order_blocks(df)
+    ob_s    = 0.0
+    if ob_data["price_in_bullish_ob"]:
+        ob = ob_data["bullish_ob"]
+        freshness = max(0.3, 1.0 - ob["age"] / 20) if ob else 0.3
+        ob_s = 3.0 * freshness   # +3.0 máximo si es reciente
+    elif ob_data["price_in_bearish_ob"]:
+        ob = ob_data["bearish_ob"]
+        freshness = max(0.3, 1.0 - ob["age"] / 20) if ob else 0.3
+        ob_s = -3.0 * freshness
+    score += ob_s
+    det["ob_s"]              = round(ob_s, 2)
+    det["in_bullish_ob"]     = ob_data["price_in_bullish_ob"]
+    det["in_bearish_ob"]     = ob_data["price_in_bearish_ob"]
+    det["bullish_ob"]        = ob_data["bullish_ob"]
+    det["bearish_ob"]        = ob_data["bearish_ob"]
 
-    # ── 8. Williams %R ────────────────────────────────────
-    wr = float(_williams_r(df).iloc[-1])
-    if   wr < -85: wr_s = 1.5
-    elif wr < -70: wr_s = 0.8
-    elif wr > -15: wr_s = -1.5
-    elif wr > -30: wr_s = -0.8
-    else:           wr_s = 0.0
-    score += wr_s
-    det["wr"]   = round(wr, 1)
-    det["wr_s"] = round(wr_s, 2)
+    # ── 6. Fair Value Gaps ───────────────────────────────────────────────────
+    fvg_data = _detect_fvg(df)
+    fvg_s    = 0.0
+    if fvg_data["price_in_bull_fvg"]:
+        fvg = fvg_data["bullish_fvg"]
+        freshness = max(0.3, 1.0 - fvg["age"] / 15) if fvg else 0.3
+        fvg_s = 2.5 * freshness
+    elif fvg_data["price_in_bear_fvg"]:
+        fvg = fvg_data["bearish_fvg"]
+        freshness = max(0.3, 1.0 - fvg["age"] / 15) if fvg else 0.3
+        fvg_s = -2.5 * freshness
+    score += fvg_s
+    det["fvg_s"]         = round(fvg_s, 2)
+    det["in_bull_fvg"]   = fvg_data["price_in_bull_fvg"]
+    det["in_bear_fvg"]   = fvg_data["price_in_bear_fvg"]
+    det["bullish_fvg"]   = fvg_data["bullish_fvg"]
+    det["bearish_fvg"]   = fvg_data["bearish_fvg"]
 
-    # ── 9. MFI ───────────────────────────────────────────
-    mfi_v = float(_mfi(df).iloc[-1])
-    if   mfi_v < 20: mfi_s = 1.5
-    elif mfi_v < 30: mfi_s = 0.8
-    elif mfi_v > 80: mfi_s = -1.5
-    elif mfi_v > 70: mfi_s = -0.8
-    else:             mfi_s = 0.0
-    score += mfi_s
-    det["mfi"]   = round(mfi_v, 1)
-    det["mfi_s"] = round(mfi_s, 2)
+    # ── 7. Liquidity Sweep ───────────────────────────────────────────────────
+    sweep_data = _liquidity_sweep(df)
+    sweep_s    = 0.0
+    freshness  = sweep_data["sweep_freshness"]
+    if sweep_data["bullish_sweep"]:
+        sweep_s = 3.5 * freshness
+    elif sweep_data["bearish_sweep"]:
+        sweep_s = -3.5 * freshness
+    score += sweep_s
+    det["sweep_s"]        = round(sweep_s, 2)
+    det["bullish_sweep"]  = sweep_data["bullish_sweep"]
+    det["bearish_sweep"]  = sweep_data["bearish_sweep"]
+    det["sweep_freshness"]= freshness
+    det["sweep_level"]    = sweep_data["sweep_level"]
+    det["equal_highs"]    = sweep_data["equal_highs"]
+    det["equal_lows"]     = sweep_data["equal_lows"]
 
-    # ── 10. OBV ───────────────────────────────────────────
-    obv_s = _obv(df)
-    obv_e = _ema(obv_s, 20)
-    obv_trending = float(obv_s.iloc[-1]) > float(obv_e.iloc[-1])
-    obs_s = 0.8 if obv_trending else -0.8
-    score += obs_s
-    det["obv_s"] = round(obs_s, 2)
+    # ── 8. VWAP Retest ───────────────────────────────────────────────────────
+    vwap_data = _vwap_retest(df)
+    vwap_s    = 0.0
+    if vwap_data["bullish_retest"]:
+        vwap_s = 2.0
+    elif vwap_data["bearish_retest"]:
+        vwap_s = -2.0
+    elif vwap_data["above_vwap"]:
+        vwap_s = 0.5    # precio sobre VWAP = ligero bullish
+    else:
+        vwap_s = -0.5
+    score += vwap_s
+    det["vwap_s"]          = round(vwap_s, 2)
+    det["vwap"]            = vwap_data["vwap"]
+    det["vwap_retest_bull"]= vwap_data["bullish_retest"]
+    det["vwap_retest_bear"]= vwap_data["bearish_retest"]
+    det["vwap_dist_pct"]   = vwap_data["distance_pct"]
 
-    # ── 11. Volumen spike ─────────────────────────────────
+    # ── 9. ChoCH / BoS ────────────────────────────────────────────────────────
+    struct_data = _detect_choch_bos(df)
+    struct_s    = 0.0
+    if struct_data["bos_bullish"]:    struct_s += 2.0
+    if struct_data["bos_bearish"]:    struct_s -= 2.0
+    if struct_data["choch_bullish"]:  struct_s += 1.5
+    if struct_data["choch_bearish"]:  struct_s -= 1.5
+    score += struct_s
+    det["struct_s"]      = round(struct_s, 2)
+    det["bos_bullish"]   = struct_data["bos_bullish"]
+    det["bos_bearish"]   = struct_data["bos_bearish"]
+    det["choch_bullish"] = struct_data["choch_bullish"]
+    det["choch_bearish"] = struct_data["choch_bearish"]
+
+    # ── 10. Premium / Discount ────────────────────────────────────────────────
+    pd_data = _premium_discount(df)
+    pd_s    = 0.0
+    if pd_data["zone"] == "discount":  pd_s = 0.8    # zona de compra institucional
+    elif pd_data["zone"] == "premium": pd_s = -0.8   # zona de venta institucional
+    score += pd_s
+    det["pd_zone"] = pd_data["zone"]
+    det["pd_pct"]  = pd_data["pct_in_range"]
+    det["pd_s"]    = round(pd_s, 2)
+
+    # ── 11. Volume spike ─────────────────────────────────────────────────────
     is_spike, vol_ratio = _volume_spike(df)
     candle_bull = float(c.iloc[-1]) > float(df["open"].iloc[-1])
+    vol_s = 0.0
     if is_spike:
-        vol_s = 2.0 if candle_bull else -2.0   # spike con dirección = señal fuerte
+        vol_s = 1.5 if candle_bull else -1.5
     elif vol_ratio > 1.5:
-        vol_s = 0.8 if candle_bull else -0.8
-    else:
-        vol_s = 0.0
+        vol_s = 0.6 if candle_bull else -0.6
     score += vol_s
     det["vol_ratio"] = round(vol_ratio, 2)
     det["vol_s"]     = round(vol_s, 2)
     det["vol_spike"] = is_spike
 
-    # ── 12. Estructura de mercado ─────────────────────────
-    struct = _market_structure(df)
-    struct_s = 1.2 if struct == "bullish" else (-1.2 if struct == "bearish" else 0.0)
-    score += struct_s
-    det["structure"]  = struct
-    det["struct_s"]   = round(struct_s, 2)
+    # ── 12. OBV trend ─────────────────────────────────────────────────────────
+    obv_s_series = _obv(df)
+    obv_ema      = _ema(obv_s_series, 20)
+    obv_trending = float(obv_s_series.iloc[-1]) > float(obv_ema.iloc[-1])
+    obs_s        = 0.6 if obv_trending else -0.6
+    score += obs_s
+    det["obv_s"] = round(obs_s, 2)
 
-    # ── 13. VWAP ─────────────────────────────────────────
-    vwap_v = _vwap(df)
-    vwap_dist = (price - vwap_v) / vwap_v if vwap_v > 0 else 0
-    vwap_s = 0.8 if price > vwap_v else -0.8
-    # Precio muy lejos del VWAP = posible reversión
-    if abs(vwap_dist) > 0.02:
-        vwap_s *= 0.5
-    score += vwap_s
-    det["vwap"]   = round(vwap_v, 4)
-    det["vwap_s"] = round(vwap_s, 2)
+    # ── Estructura de mercado general ─────────────────────────────────────────
+    struct_market = _market_structure(df)
+    det["structure"] = struct_market
 
-    # ── ATR ───────────────────────────────────────────────
-    atr_v = float(_atr_series(df).iloc[-1])
-    det["atr"]   = round(atr_v, 6)
-    det["price"] = round(price, 6)
+    # ── Squeeze Bollinger/Keltner ─────────────────────────────────────────────
+    bu, bm, bl = _bollinger(c)
+    ku, km, kl = _keltner_local(df)
+    buv, blv = float(bu.iloc[-1]), float(bl.iloc[-1])
+    kuv, klv = float(ku.iloc[-1]), float(kl.iloc[-1])
+    squeeze = buv < kuv and blv > klv
+    det["squeeze"] = squeeze
 
     score = max(-10.0, min(10.0, score))
     det["score"] = round(score, 3)
     return score, det
+
+
+def _keltner_local(df: pd.DataFrame, p=20, mult=1.5):
+    mid = _ema(df["close"], p)
+    a   = _atr_series(df, p)
+    return mid + mult * a, mid, mid - mult * a
+
+
+# _keltner_local is defined above and called directly within score_tf
 
 
 # ══════════════════════════════════════════════════════════
@@ -428,11 +781,11 @@ def analyze_symbol(client, symbol: str,
                    timeframes: List[str] = None,
                    fast_mode: bool = False) -> Dict[str, Any]:
     """
-    Motor de análisis SNIPER + AGRESIVO.
-    Detecta automáticamente el modo de entrada óptimo:
-      - AGGRESSIVE: squeeze detectado → entra rápido antes del breakout
-      - MOMENTUM:   volumen explosivo + tendencia → entra fuerte
-      - STANDARD:   análisis técnico puro multi-TF
+    Motor de análisis SMC Multi-Timeframe.
+    Detecta automáticamente el setup óptimo:
+      - AGGRESSIVE: sweep + OB frescos → entrada inmediata
+      - MOMENTUM:   BoS confirmado + volumen → trend riding
+      - STANDARD:   confluencia SMC multi-TF
     """
     if fast_mode:
         timeframes = ["15", "60", "240"]
@@ -440,32 +793,39 @@ def analyze_symbol(client, symbol: str,
         timeframes = ALL_TF
 
     mark_price = client.get_mark_price(symbol)
-    ob         = client.get_orderbook(symbol, limit=25)
+    ob_raw     = client.get_orderbook(symbol, limit=25)
 
-    tf_details: Dict[str, Dict]   = {}
-    weighted_scores: Dict[str, float] = {}
-    primary_atr: Optional[float]  = None
-    any_squeeze = False
-    any_vol_spike = False
-    entry_mode = MODE_STANDARD
+    tf_details:       Dict[str, Dict]   = {}
+    weighted_scores:  Dict[str, float]  = {}
+    primary_atr:      Optional[float]   = None
+    any_squeeze       = False
+    any_vol_spike     = False
+    any_sweep         = False
+    any_ob_hit        = False
+    any_fvg_fill      = False
+    any_vwap_retest   = False
+    entry_mode        = MODE_STANDARD
 
     for tf in timeframes:
         cfg   = TF_CONFIG.get(tf, {"label": tf, "category": "mid", "weight": 0.1, "min_bars": 60})
         label = cfg["label"]
-        limit = max(300, cfg["min_bars"] + 50)
+        limit = max(350, cfg["min_bars"] + 80)
         klines = client.get_klines(symbol, tf, limit=limit)
         df     = to_df(klines)
         if df.empty or len(df) < cfg["min_bars"]:
             continue
 
         sc, det = score_tf(df, tf)
-        weighted_scores[tf]  = sc * cfg["weight"]
-        tf_details[label]    = {"tf": tf, "category": cfg["category"], **det}
+        weighted_scores[tf] = sc * cfg["weight"]
+        tf_details[label]   = {"tf": tf, "category": cfg["category"], **det}
 
-        if det.get("squeeze"):
-            any_squeeze = True
-        if det.get("vol_spike"):
-            any_vol_spike = True
+        if det.get("squeeze"):          any_squeeze     = True
+        if det.get("vol_spike"):        any_vol_spike   = True
+        if det.get("bullish_sweep") or det.get("bearish_sweep"): any_sweep = True
+        if det.get("in_bullish_ob") or det.get("in_bearish_ob"): any_ob_hit = True
+        if det.get("in_bull_fvg") or det.get("in_bear_fvg"):     any_fvg_fill = True
+        if det.get("vwap_retest_bull") or det.get("vwap_retest_bear"): any_vwap_retest = True
+
         if tf in ("60", "240") and det.get("atr"):
             primary_atr = det["atr"]
 
@@ -493,34 +853,31 @@ def analyze_symbol(client, symbol: str,
     entry_bias, entry_avg = _bias(ENTRY_TF)
 
     # ── Orderbook imbalance ─────────────────────────────────
-    ob_score = _ob_imbalance(ob)
+    ob_score = _ob_imbalance(ob_raw)
     composite = composite * 0.90 + ob_score * 0.10
     composite = max(-10.0, min(10.0, composite))
 
     # ── DETERMINAR MODO DE ENTRADA ─────────────────────────
-    # 1. Squeeze: umbral bajo, entrar antes del breakout
-    if any_squeeze and abs(composite) >= 2.5:
+    # SMC AGGRESSIVE: sweep + ob_hit (setup institucional clásico)
+    if any_sweep and any_ob_hit and abs(composite) >= 2.5:
         entry_mode = MODE_AGGRESSIVE
         threshold  = 2.5
-    # 2. Volumen spike + tendencia clara: momentum trade
-    elif any_vol_spike and macro_bias != "NEUTRAL" and abs(composite) >= 3.0:
+    # MOMENTUM: fvg_fill o vwap_retest + trend macro
+    elif (any_fvg_fill or any_vwap_retest) and macro_bias != "NEUTRAL" and abs(composite) >= 3.0:
         entry_mode = MODE_MOMENTUM
         threshold  = 3.0
-    # 3. Estándar: análisis completo
     else:
         entry_mode = MODE_STANDARD
         threshold  = 4.0
 
-    # ── SEÑAL ──────────────────────────────────────────────
-    # Modo AGGRESSIVE/MOMENTUM: macro NO debe contradecir (no requiere alineación)
-    # Modo STANDARD: macro + mid deben estar de acuerdo
+    # ── SEÑAL ─────────────────────────────────────────────
     signal = "FLAT"
     if composite >= threshold:
         if entry_mode == MODE_STANDARD:
             if macro_bias != "SHORT" and mid_bias != "SHORT":
                 signal = "LONG"
         else:
-            if macro_bias != "SHORT":   # solo bloquear si macro es opuesto
+            if macro_bias != "SHORT":
                 signal = "LONG"
     elif composite <= -threshold:
         if entry_mode == MODE_STANDARD:
@@ -530,16 +887,22 @@ def analyze_symbol(client, symbol: str,
             if macro_bias != "LONG":
                 signal = "SHORT"
 
-    aligned = (macro_bias == mid_bias == entry_bias and macro_bias != "NEUTRAL")
+    aligned    = (macro_bias == mid_bias == entry_bias and macro_bias != "NEUTRAL")
     confidence = min(1.0, abs(composite) / 10.0)
-    if aligned:       confidence = min(1.0, confidence * 1.3)
-    if any_squeeze:   confidence = min(1.0, confidence * 1.15)
-    if any_vol_spike: confidence = min(1.0, confidence * 1.10)
+    if aligned:             confidence = min(1.0, confidence * 1.30)
+    if any_sweep:           confidence = min(1.0, confidence * 1.20)
+    if any_ob_hit:          confidence = min(1.0, confidence * 1.15)
+    if any_vwap_retest:     confidence = min(1.0, confidence * 1.10)
+    if any_fvg_fill:        confidence = min(1.0, confidence * 1.08)
 
-    # TP/SL dinámicos según modo
+    # TP/SL dinámicos
     tp_mult = 1.8 if entry_mode == MODE_AGGRESSIVE else (2.2 if entry_mode == MODE_MOMENTUM else 2.5)
     sl_mult = 1.0 if entry_mode == MODE_AGGRESSIVE else (1.1 if entry_mode == MODE_MOMENTUM else 1.2)
     tp, sl  = _calc_tp_sl(signal, mark_price, primary_atr, tp_mult, sl_mult)
+
+    # ── Datos crudos SMC para la IA ────────────────────────
+    smc_summary = _build_smc_summary(tf_details, composite, any_sweep, any_ob_hit,
+                                      any_fvg_fill, any_vwap_retest)
 
     return {
         "symbol":          symbol,
@@ -562,9 +925,63 @@ def analyze_symbol(client, symbol: str,
         "ob_score":        round(ob_score, 3),
         "squeeze":         any_squeeze,
         "vol_spike":       any_vol_spike,
+        # ── SMC raw data ─────────────────────────────────────────────────────
+        "smc_sweep":       any_sweep,
+        "smc_ob_hit":      any_ob_hit,
+        "smc_fvg_fill":    any_fvg_fill,
+        "smc_vwap_retest": any_vwap_retest,
+        "smc_summary":     smc_summary,
+        # ─────────────────────────────────────────────────────────────────────
         "tf_details":      tf_details,
         "ts":              int(time.time()),
     }
+
+
+def _build_smc_summary(tf_details: Dict, composite: float,
+                        any_sweep: bool, any_ob_hit: bool,
+                        any_fvg_fill: bool, any_vwap_retest: bool) -> Dict:
+    """Construye resumen SMC compacto para pasar a la IA."""
+    summary = {
+        "composite_score":  round(composite, 2),
+        "sweep_detected":   any_sweep,
+        "order_block_hit":  any_ob_hit,
+        "fvg_fill":         any_fvg_fill,
+        "vwap_retest":      any_vwap_retest,
+        "setups_count":     sum([any_sweep, any_ob_hit, any_fvg_fill, any_vwap_retest]),
+        "tf_evidence":      {},
+    }
+    # Recopilar evidencia por TF relevante
+    for label, det in tf_details.items():
+        tf_ev = {}
+        if det.get("bullish_sweep") or det.get("bearish_sweep"):
+            tf_ev["sweep"] = "BULL" if det.get("bullish_sweep") else "BEAR"
+            tf_ev["sweep_freshness"] = det.get("sweep_freshness", 0)
+        if det.get("in_bullish_ob"):
+            ob = det.get("bullish_ob") or {}
+            tf_ev["ob"] = f"BULL @ {ob.get('mid', '?'):.4f}" if isinstance(ob.get('mid'), float) else "BULL OB"
+        elif det.get("in_bearish_ob"):
+            ob = det.get("bearish_ob") or {}
+            tf_ev["ob"] = f"BEAR @ {ob.get('mid', '?'):.4f}" if isinstance(ob.get('mid'), float) else "BEAR OB"
+        if det.get("in_bull_fvg"):
+            fvg = det.get("bullish_fvg") or {}
+            tf_ev["fvg"] = f"BULL gap {fvg.get('low', '?'):.4f}-{fvg.get('high', '?'):.4f}" if isinstance(fvg.get('low'), float) else "BULL FVG"
+        elif det.get("in_bear_fvg"):
+            tf_ev["fvg"] = "BEAR FVG"
+        if det.get("vwap_retest_bull"):
+            tf_ev["vwap"] = f"BULL retest @ {det.get('vwap', '?')}"
+        elif det.get("vwap_retest_bear"):
+            tf_ev["vwap"] = f"BEAR retest @ {det.get('vwap', '?')}"
+        if det.get("choch_bullish"):
+            tf_ev["structure"] = "ChoCH BULL"
+        elif det.get("choch_bearish"):
+            tf_ev["structure"] = "ChoCH BEAR"
+        elif det.get("bos_bullish"):
+            tf_ev["structure"] = "BoS BULL"
+        elif det.get("bos_bearish"):
+            tf_ev["structure"] = "BoS BEAR"
+        if tf_ev:
+            summary["tf_evidence"][label] = tf_ev
+    return summary
 
 
 # ══════════════════════════════════════════════════════════
@@ -593,7 +1010,6 @@ def scan_best_opportunities(client, top_n: int = 5,
     for sym, _ in candidates[:60]:
         try:
             a = analyze_symbol(client, sym, fast_mode=True)
-            # En el scan, umbral más bajo para no perder oportunidades
             if a["signal"] != "FLAT" and a["confidence"] > 0.30:
                 results.append(a)
         except Exception as e:
@@ -622,7 +1038,6 @@ def _calc_tp_sl(signal: str, price: float, atr_v: Optional[float],
                 tp_mult: float = 2.5, sl_mult: float = 1.2):
     if not atr_v or not price:
         return None, None
-    # Cap ATR al 30% del precio para evitar TPs negativos (ej: POWERUSDT)
     max_atr = price * 0.30
     atr_v   = min(atr_v, max_atr)
     if signal == "LONG":
@@ -648,6 +1063,8 @@ def _empty_result(symbol: str, price: float) -> Dict:
         "macro_avg": 0.0, "mid_avg": 0.0, "entry_avg": 0.0,
         "mark_price": price, "atr": None, "tp": None, "sl": None,
         "ob_score": 0.0, "squeeze": False, "vol_spike": False,
+        "smc_sweep": False, "smc_ob_hit": False, "smc_fvg_fill": False,
+        "smc_vwap_retest": False, "smc_summary": {},
         "tf_details": {}, "ts": int(time.time()),
     }
 
@@ -672,7 +1089,7 @@ def format_analysis_for_tg(a: Dict) -> str:
         return f"[{'█'*n}{'░'*(10-n)}] {s:+.1f}"
 
     def _be(b):
-        return "🟢" if b=="LONG" else ("🔴" if b=="SHORT" else "⚪")
+        return "🟢" if b == "LONG" else ("🔴" if b == "SHORT" else "⚪")
 
     tfd = a.get("tf_details", {})
     tf_lines = []
@@ -683,10 +1100,19 @@ def format_analysis_for_tg(a: Dict) -> str:
         st = "▲" if d.get("st_dir", 0) == 1 else "▼"
         sq = "⚡" if d.get("squeeze") else ""
         vs = "💥" if d.get("vol_spike") else ""
-        dv = f" div:{d.get('div_type','')[:3]}" if d.get("div_type","none") != "none" else ""
+        sw = "🌊" if (d.get("bullish_sweep") or d.get("bearish_sweep")) else ""
+        ob = "🧱" if (d.get("in_bullish_ob") or d.get("in_bearish_ob")) else ""
+        fv = "🪟" if (d.get("in_bull_fvg") or d.get("in_bear_fvg")) else ""
+        vr = "🎯" if (d.get("vwap_retest_bull") or d.get("vwap_retest_bear")) else ""
         tf_lines.append(
-            f"  <code>{label:>3}</code> {_bar(s)} {st}{sq}{vs}  RSI:{d.get('rsi','-')}{dv}"
+            f"  <code>{label:>3}</code> {_bar(s)} {st}{sq}{vs}{sw}{ob}{fv}{vr}  RSI:{d.get('rsi','-')}"
         )
+
+    smc_badges = []
+    if a.get("smc_sweep"):       smc_badges.append("🌊 SWEEP")
+    if a.get("smc_ob_hit"):      smc_badges.append("🧱 ORDER BLOCK")
+    if a.get("smc_fvg_fill"):    smc_badges.append("🪟 FVG FILL")
+    if a.get("smc_vwap_retest"): smc_badges.append("🎯 VWAP RETEST")
 
     lines = [
         f"<b>📊 {sym}  {sig_emoji}</b>  {mode_emoji}<i>{mode}</i>",
@@ -697,15 +1123,12 @@ def format_analysis_for_tg(a: Dict) -> str:
         f"Mid {_be(a['mid_bias'])} <b>{a['mid_bias']}</b>  "
         f"Entry {_be(a['entry_bias'])} <b>{a['entry_bias']}</b>",
         "",
+        "<b>SMC Setups:</b> " + ("  ".join(smc_badges) if smc_badges else "ninguno detectado"),
+        "",
         "<b>Timeframes:</b>",
     ] + tf_lines
 
-    extras = []
-    if a.get("squeeze"):   extras.append("⚡ SQUEEZE — explosión inminente")
-    if a.get("vol_spike"): extras.append("💥 VOLUMEN EXPLOSIVO")
-    if a.get("tp"):        extras.append(f"TP: <code>{a['tp']}</code>  SL: <code>{a['sl']}</code>")
-    if extras:
-        lines.append("")
-        lines.extend(extras)
+    if a.get("tp"):
+        lines.append(f"\nTP: <code>{a['tp']}</code>  SL: <code>{a['sl']}</code>")
 
     return "\n".join(lines)
