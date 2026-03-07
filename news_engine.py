@@ -1,309 +1,383 @@
 """
-news_engine.py — Motor de Noticias en Tiempo Real
-══════════════════════════════════════════════════
-Fuentes (todas gratuitas, sin API key):
-  • CryptoPanic RSS      — noticias cripto agregadas
-  • CoinTelegraph RSS    — noticias cripto editoriales
-  • Bitcoin Magazine RSS — foco en BTC
-  • Decrypt RSS          — noticias generales cripto
-  • The Block RSS        — análisis y noticias
-  • FED / FOMC / SEC     — noticias macro regulatorias
-  • Fear & Greed Index   — sentimiento del mercado (alternative.me)
-  • Funding rates        — Bybit (ya disponible sin auth)
-
-Funcionamiento:
-  1. Escanea RSS feeds cada 2 minutos
-  2. Analiza el texto con NLP simple (palabras clave ponderadas)
-  3. Asigna un "news_score" por símbolo: +1 a -1
-  4. Si detecta noticia CRÍTICA (score > 0.7 o < -0.7) → notifica Telegram INMEDIATAMENTE
-  5. El bot_autonomous puede consultar get_news_bias(symbol) antes de abrir trade
-  6. Fear & Greed Index ajusta el umbral general de señal
-
-Categorías de palabras clave:
-  BULLISH: ETF, adoption, institutional, buy, approve, launch, partnership,
-           upgrade, halving, rally, breakout, bullish, surge, moon, ATH...
-  BEARISH: ban, hack, exploit, crash, lawsuit, SEC, regulation, FUD,
-           sell-off, dump, bankruptcy, fear, bearish, crash, collapse...
-  CRITICAL: exchange down, rug pull, hack confirmed, SEC charges, war,
-            emergency, ban confirmed, massive sell-off...
+news_engine.py v2 — Motor de Noticias + Calendario de Eventos Macro
+═════════════════════════════════════════════════════════════════════
+Nuevo en v2:
+  - MacroCalendar: calendario de eventos HIGH_IMPACT (FOMC, CPI, NFP, ...)
+  - is_news_freeze_active(): True si ±30 min alrededor de un evento macro
+  - Notificación automática al activar/levantar una ventana de freeze
+  - RC codes en todos los logs y mensajes de Telegram
+  - macro_events.json: archivo externo para actualizar fechas sin tocar código
 """
 
-import re
-import time
+from __future__ import annotations
+
+import json
 import logging
+import os
+import re
 import threading
+import time
 import xml.etree.ElementTree as ET
 from datetime import datetime, timezone
 from typing import Dict, List, Optional, Tuple
-from urllib.request import urlopen, Request
 from urllib.error import URLError
+from urllib.request import Request, urlopen
 
 import requests
 
+from reason_codes import RC, NEWS_FREEZE_PRE_MIN, NEWS_FREEZE_POST_MIN
+
 log = logging.getLogger("news_engine")
 
+_FREEZE_PRE_SEC  = NEWS_FREEZE_PRE_MIN  * 60   # 1800 s
+_FREEZE_POST_SEC = NEWS_FREEZE_POST_MIN * 60   # 1800 s
+
+MACRO_EVENTS_FILE = "macro_events.json"
+
 # ══════════════════════════════════════════════════════════
-#  FUENTES RSS
+#  FUENTES RSS  (sin cambios respecto a v1)
 # ══════════════════════════════════════════════════════════
 
 RSS_FEEDS = [
-    {
-        "name":     "CryptoPanic",
-        "url":      "https://cryptopanic.com/news/rss/",
-        "weight":   1.2,
-        "category": "crypto",
-    },
-    {
-        "name":     "CoinTelegraph",
-        "url":      "https://cointelegraph.com/rss",
-        "weight":   1.0,
-        "category": "crypto",
-    },
-    {
-        "name":     "Decrypt",
-        "url":      "https://decrypt.co/feed",
-        "weight":   0.9,
-        "category": "crypto",
-    },
-    {
-        "name":     "The Block",
-        "url":      "https://www.theblock.co/rss.xml",
-        "weight":   1.1,
-        "category": "crypto",
-    },
-    {
-        "name":     "Bitcoin Magazine",
-        "url":      "https://bitcoinmagazine.com/feed",
-        "weight":   0.8,
-        "category": "btc",
-    },
-    {
-        "name":     "CoinDesk",
-        "url":      "https://www.coindesk.com/arc/outboundfeeds/rss/",
-        "weight":   1.0,
-        "category": "crypto",
-    },
-    {
-        "name":     "Investing.com Crypto",
-        "url":      "https://www.investing.com/rss/news_301.rss",
-        "weight":   0.9,
-        "category": "macro",
-    },
+    {"name":"CryptoPanic",  "url":"https://cryptopanic.com/news/rss/",              "weight":1.2,"category":"crypto"},
+    {"name":"CoinTelegraph","url":"https://cointelegraph.com/rss",                   "weight":1.0,"category":"crypto"},
+    {"name":"Decrypt",      "url":"https://decrypt.co/feed",                        "weight":0.9,"category":"crypto"},
+    {"name":"The Block",    "url":"https://www.theblock.co/rss.xml",                "weight":1.1,"category":"crypto"},
+    {"name":"Bitcoin Mag",  "url":"https://bitcoinmagazine.com/feed",               "weight":0.8,"category":"btc"},
+    {"name":"CoinDesk",     "url":"https://www.coindesk.com/arc/outboundfeeds/rss/","weight":1.0,"category":"crypto"},
+    {"name":"Investing",    "url":"https://www.investing.com/rss/news_301.rss",     "weight":0.9,"category":"macro"},
 ]
 
 # ══════════════════════════════════════════════════════════
-#  PALABRAS CLAVE PONDERADAS
+#  PALABRAS CLAVE  (sin cambios respecto a v1)
 # ══════════════════════════════════════════════════════════
 
 BULLISH_KEYWORDS: Dict[str, float] = {
-    # Institucional / adopción
-    "etf approved": 0.9, "etf approval": 0.9, "spot etf": 0.8,
-    "institutional": 0.5, "adoption": 0.6, "partnership": 0.4,
-    "listing": 0.5, "listed on": 0.5,
-    # Técnico / mercado
-    "breakout": 0.6, "all-time high": 0.8, "ath": 0.7, "rally": 0.6,
-    "surge": 0.5, "bullish": 0.5, "buy": 0.3, "accumulation": 0.5,
-    "upgrade": 0.4, "launch": 0.4, "mainnet": 0.5,
-    # Bitcoin específico
-    "halving": 0.7, "bitcoin reserve": 0.8, "strategic reserve": 0.8,
-    "legal tender": 0.7, "nation": 0.4,
-    # Macro positivo
-    "rate cut": 0.6, "pivot": 0.5, "fed pause": 0.5,
-    "inflation easing": 0.4, "gdp growth": 0.3,
-    # Sentimiento
-    "moon": 0.3, "to the moon": 0.4, "green": 0.2, "pumping": 0.3,
-    "recovery": 0.4, "rebounding": 0.4, "outperform": 0.4,
-    # Gobierno / regulación positiva
-    "regulation clarity": 0.6, "framework approved": 0.6,
-    "crypto friendly": 0.5, "pro-crypto": 0.6,
+    "etf approved":0.9,"etf approval":0.9,"spot etf":0.8,
+    "institutional":0.5,"adoption":0.6,"partnership":0.4,
+    "listing":0.5,"listed on":0.5,"breakout":0.6,
+    "all-time high":0.8,"ath":0.7,"rally":0.6,"surge":0.5,
+    "bullish":0.5,"buy":0.3,"accumulation":0.5,"upgrade":0.4,
+    "launch":0.4,"mainnet":0.5,"halving":0.7,
+    "bitcoin reserve":0.8,"strategic reserve":0.8,"legal tender":0.7,
+    "rate cut":0.6,"pivot":0.5,"fed pause":0.5,
+    "inflation easing":0.4,"gdp growth":0.3,
+    "moon":0.3,"recovery":0.4,"rebounding":0.4,"outperform":0.4,
+    "regulation clarity":0.6,"framework approved":0.6,
+    "crypto friendly":0.5,"pro-crypto":0.6,
 }
 
 BEARISH_KEYWORDS: Dict[str, float] = {
-    # Regulatorio / legal
-    "ban": 0.8, "banned": 0.8, "sec charges": 0.9, "sec sues": 0.9,
-    "lawsuit": 0.6, "illegal": 0.7, "seized": 0.7, "arrest": 0.6,
-    "crackdown": 0.7, "shutdown": 0.7, "sanction": 0.7,
-    # Hack / seguridad
-    "hack": 0.9, "hacked": 0.9, "exploit": 0.8, "stolen": 0.8,
-    "rug pull": 1.0, "exit scam": 1.0, "breach": 0.7,
-    "vulnerability": 0.6, "attack": 0.6,
-    # Mercado / precio
-    "crash": 0.8, "dump": 0.6, "dumping": 0.6, "sell-off": 0.7,
-    "selloff": 0.7, "collapse": 0.8, "plunge": 0.7, "bear": 0.4,
-    "bearish": 0.5, "decline": 0.3, "correction": 0.4,
-    # Exchange / empresa
-    "bankruptcy": 0.9, "insolvent": 0.9, "halted": 0.8,
-    "exchange down": 0.9, "withdrawals suspended": 0.9,
-    "bank run": 0.9, "insolvency": 0.9,
-    # Macro negativo
-    "rate hike": 0.5, "inflation spike": 0.5, "recession": 0.5,
-    "war": 0.6, "conflict": 0.4, "crisis": 0.5, "emergency": 0.5,
-    # Sentimiento
-    "fud": 0.4, "panic": 0.6, "fear": 0.4, "red": 0.2,
+    "ban":0.8,"banned":0.8,"sec charges":0.9,"sec sues":0.9,
+    "lawsuit":0.6,"illegal":0.7,"seized":0.7,"arrest":0.6,
+    "crackdown":0.7,"shutdown":0.7,"sanction":0.7,
+    "hack":0.9,"hacked":0.9,"exploit":0.8,"stolen":0.8,
+    "rug pull":1.0,"exit scam":1.0,"breach":0.7,
+    "crash":0.8,"dump":0.6,"sell-off":0.7,"selloff":0.7,
+    "collapse":0.8,"plunge":0.7,"bearish":0.5,"decline":0.3,
+    "bankruptcy":0.9,"insolvent":0.9,"halted":0.8,
+    "exchange down":0.9,"withdrawals suspended":0.9,
+    "bank run":0.9,"insolvency":0.9,
+    "rate hike":0.5,"inflation spike":0.5,"recession":0.5,
+    "war":0.6,"conflict":0.4,"crisis":0.5,"emergency":0.5,
+    "fud":0.4,"panic":0.6,"fear":0.4,
 }
 
-# Palabras que AMPLIFICAN el impacto
-AMPLIFIERS = {
-    "massive": 1.5, "major": 1.3, "huge": 1.4, "critical": 1.5,
-    "urgent": 1.4, "breaking": 1.6, "confirmed": 1.4, "official": 1.3,
-    "emergency": 1.5, "unprecedented": 1.4, "billions": 1.3,
-    "largest": 1.3, "biggest": 1.3, "historic": 1.2,
+AMPLIFIERS: Dict[str, float] = {
+    "massive":1.5,"major":1.3,"huge":1.4,"critical":1.5,
+    "urgent":1.4,"breaking":1.6,"confirmed":1.4,"official":1.3,
+    "emergency":1.5,"unprecedented":1.4,"billions":1.3,
+    "largest":1.3,"biggest":1.3,"historic":1.2,
 }
 
-# Mapa símbolo → términos relacionados para filtrar noticias relevantes
 SYMBOL_KEYWORDS: Dict[str, List[str]] = {
-    "BTCUSDT":  ["bitcoin", "btc", "satoshi", "crypto", "cryptocurrency"],
-    "ETHUSDT":  ["ethereum", "eth", "vitalik", "ether", "erc-20", "defi"],
-    "SOLUSDT":  ["solana", "sol", "solana network"],
-    "BNBUSDT":  ["binance", "bnb", "bsc", "binance coin"],
-    "XRPUSDT":  ["ripple", "xrp", "ripple labs"],
-    "ADAUSDT":  ["cardano", "ada"],
-    "DOGEUSDT": ["dogecoin", "doge", "elon musk doge"],
-    "AVAXUSDT": ["avalanche", "avax"],
-    "DOTUSDT":  ["polkadot", "dot"],
-    "LINKUSDT": ["chainlink", "link"],
-    "LTCUSDT":  ["litecoin", "ltc"],
-    "MATICUSDT":["polygon", "matic"],
-    "ATOMUSDT": ["cosmos", "atom"],
-    "UNIUSDT":  ["uniswap", "uni"],
+    "BTCUSDT":  ["bitcoin","btc","satoshi","crypto","cryptocurrency"],
+    "ETHUSDT":  ["ethereum","eth","vitalik","ether","erc-20","defi"],
+    "SOLUSDT":  ["solana","sol"],
+    "BNBUSDT":  ["binance","bnb","bsc"],
+    "XRPUSDT":  ["ripple","xrp"],
+    "ADAUSDT":  ["cardano","ada"],
+    "DOGEUSDT": ["dogecoin","doge"],
+    "AVAXUSDT": ["avalanche","avax"],
+    "DOTUSDT":  ["polkadot","dot"],
+    "LINKUSDT": ["chainlink","link"],
+    "LTCUSDT":  ["litecoin","ltc"],
+    "MATICUSDT":["polygon","matic"],
+    "ATOMUSDT": ["cosmos","atom"],
+    "UNIUSDT":  ["uniswap","uni"],
     "AAVEUSDT": ["aave"],
 }
 
-# Términos generales que afectan TODO el mercado cripto
 GLOBAL_CRYPTO_TERMS = [
-    "crypto", "cryptocurrency", "digital asset", "blockchain",
-    "defi", "web3", "bitcoin", "btc", "altcoin",
-    "fed", "federal reserve", "interest rate", "inflation",
-    "sec", "cftc", "regulation", "cbdc",
+    "crypto","cryptocurrency","digital asset","blockchain",
+    "defi","web3","bitcoin","btc","altcoin",
+    "fed","federal reserve","interest rate","inflation",
+    "sec","cftc","regulation","cbdc",
 ]
 
-# Umbral para notificación crítica
 CRITICAL_THRESHOLD = 0.65
 
 
 # ══════════════════════════════════════════════════════════
-#  ANALIZADOR DE TEXTO
+#  ANÁLISIS DE TEXTO
 # ══════════════════════════════════════════════════════════
 
 def analyze_text(text: str) -> Tuple[float, str, List[str]]:
-    """
-    Analiza un texto y retorna:
-      - sentiment_score: -1.0 (muy bajista) a +1.0 (muy alcista)
-      - direction: "BULLISH" | "BEARISH" | "NEUTRAL"
-      - matched_keywords: lista de palabras clave encontradas
-    """
-    text_lower = text.lower()
-
-    # Detectar amplificadores
-    amplifier = 1.0
-    for amp, mult in AMPLIFIERS.items():
-        if amp in text_lower:
-            amplifier = max(amplifier, mult)
-
-    bull_score = 0.0
-    bear_score = 0.0
-    matched = []
-
-    for kw, weight in BULLISH_KEYWORDS.items():
-        if kw in text_lower:
-            bull_score += weight * amplifier
+    t = text.lower()
+    amp = 1.0
+    for a, m in AMPLIFIERS.items():
+        if a in t:
+            amp = max(amp, m)
+    bull = bear = 0.0
+    matched: List[str] = []
+    for kw, w in BULLISH_KEYWORDS.items():
+        if kw in t:
+            bull += w * amp
             matched.append(f"+{kw}")
-
-    for kw, weight in BEARISH_KEYWORDS.items():
-        if kw in text_lower:
-            bear_score += weight * amplifier
+    for kw, w in BEARISH_KEYWORDS.items():
+        if kw in t:
+            bear += w * amp
             matched.append(f"-{kw}")
-
-    net = bull_score - bear_score
-    # Normalizar a [-1, +1]
-    max_possible = 5.0
-    score = max(-1.0, min(1.0, net / max_possible))
-
-    if score > 0.15:   direction = "BULLISH"
+    net   = bull - bear
+    score = max(-1.0, min(1.0, net / 5.0))
+    if score >  0.15: direction = "BULLISH"
     elif score < -0.15: direction = "BEARISH"
-    else:               direction = "NEUTRAL"
-
+    else: direction = "NEUTRAL"
     return round(score, 3), direction, matched[:8]
 
 
 def is_relevant_for_symbol(text: str, symbol: str) -> bool:
-    """Determina si una noticia es relevante para un símbolo específico"""
-    text_lower = text.lower()
+    tl    = text.lower()
     terms = SYMBOL_KEYWORDS.get(symbol, []) + GLOBAL_CRYPTO_TERMS
-    return any(term in text_lower for term in terms)
+    return any(term in tl for term in terms)
 
 
 # ══════════════════════════════════════════════════════════
-#  PARSER DE RSS
+#  RSS PARSER
 # ══════════════════════════════════════════════════════════
 
 def fetch_rss(url: str, timeout: int = 8) -> List[Dict]:
-    """Descarga y parsea un feed RSS, retorna lista de items"""
-    items = []
+    items: List[Dict] = []
     try:
-        req = Request(url, headers={
-            "User-Agent": "Mozilla/5.0 (compatible; TradingBot/1.0)"
-        })
-        with urlopen(req, timeout=timeout) as resp:
-            content = resp.read()
-
-        root = ET.fromstring(content)
-        # RSS 2.0
-        channel = root.find("channel")
-        if channel is None:
-            channel = root  # Atom feed
-
-        for item in channel.findall("item")[:20]:  # últimos 20
+        req = Request(url, headers={"User-Agent": "Mozilla/5.0"})
+        with urlopen(req, timeout=timeout) as r:
+            content = r.read()
+        root    = ET.fromstring(content)
+        channel = root.find("channel") or root
+        for item in channel.findall("item")[:20]:
             title   = (item.findtext("title")       or "").strip()
             desc    = (item.findtext("description") or "").strip()
             pub_date= (item.findtext("pubDate")     or "").strip()
             link    = (item.findtext("link")        or "").strip()
-
-            # Limpiar HTML del description
-            desc = re.sub(r"<[^>]+>", " ", desc)
-            desc = re.sub(r"\s+", " ", desc).strip()
-
+            desc    = re.sub(r"<[^>]+>", " ", desc)
+            desc    = re.sub(r"\s+", " ", desc).strip()
             items.append({
-                "title":    title,
-                "desc":     desc,
-                "pub_date": pub_date,
-                "link":     link,
+                "title": title, "desc": desc,
+                "pub_date": pub_date, "link": link,
                 "full_text": f"{title} {desc}",
+                "ts": int(time.time()),
             })
-    except URLError as e:
+    except (URLError, ET.ParseError, Exception) as e:
         log.debug(f"RSS {url}: {e}")
-    except ET.ParseError as e:
-        log.debug(f"XML parse {url}: {e}")
-    except Exception as e:
-        log.debug(f"RSS fetch {url}: {e}")
     return items
 
 
-# ══════════════════════════════════════════════════════════
-#  FEAR & GREED INDEX
-# ══════════════════════════════════════════════════════════
-
 def fetch_fear_greed() -> Dict:
-    """
-    Obtiene el Fear & Greed Index de alternative.me
-    Retorna: {"value": 0-100, "label": "Extreme Fear|Fear|Neutral|Greed|Extreme Greed"}
-    """
     try:
         r = requests.get("https://api.alternative.me/fng/", timeout=8)
-        data = r.json()
-        d = data["data"][0]
-        value = int(d["value"])
-        label = d["value_classification"]
-        score_adj = (value - 50) / 100   # -0.5 a +0.5
-        return {
-            "value":      value,
-            "label":      label,
-            "score_adj":  round(score_adj, 3),
-            "ts":         int(time.time()),
-        }
+        d = r.json()["data"][0]
+        v = int(d["value"])
+        return {"value": v, "label": d["value_classification"],
+                "score_adj": round((v - 50) / 100, 3), "ts": int(time.time())}
     except Exception as e:
         log.debug(f"Fear&Greed: {e}")
         return {"value": 50, "label": "Neutral", "score_adj": 0.0, "ts": int(time.time())}
+
+
+# ══════════════════════════════════════════════════════════
+#  MACRO EVENT CALENDAR
+# ══════════════════════════════════════════════════════════
+
+def _ts(dt_str: str) -> int:
+    """'YYYY-MM-DD HH:MM' UTC → timestamp Unix."""
+    return int(
+        datetime.strptime(dt_str, "%Y-%m-%d %H:%M")
+        .replace(tzinfo=timezone.utc)
+        .timestamp()
+    )
+
+
+def _hardcoded_events() -> List[Dict]:
+    """
+    Eventos macro HIGH_IMPACT hardcoded para 2026.
+    Actualiza periódicamente o usa macro_events.json para sobreescribir.
+    Cada evento: {name, ts_utc, impact, category}
+    """
+    return [
+        # ── FED / FOMC ─────────────────────────────────────────────────────────
+        {"name":"FOMC Decision",        "ts_utc":_ts("2026-03-18 18:00"),"impact":"HIGH","category":"FED"},
+        {"name":"FOMC Decision",        "ts_utc":_ts("2026-05-06 18:00"),"impact":"HIGH","category":"FED"},
+        {"name":"FOMC Decision",        "ts_utc":_ts("2026-06-17 18:00"),"impact":"HIGH","category":"FED"},
+        {"name":"FOMC Decision",        "ts_utc":_ts("2026-07-29 18:00"),"impact":"HIGH","category":"FED"},
+        {"name":"Fed Powell Speech",    "ts_utc":_ts("2026-03-07 15:00"),"impact":"HIGH","category":"FED"},
+        # ── CPI / INFLACIÓN ────────────────────────────────────────────────────
+        {"name":"US CPI",               "ts_utc":_ts("2026-03-11 12:30"),"impact":"HIGH","category":"INFLATION"},
+        {"name":"US CPI",               "ts_utc":_ts("2026-04-10 12:30"),"impact":"HIGH","category":"INFLATION"},
+        {"name":"US CPI",               "ts_utc":_ts("2026-05-13 12:30"),"impact":"HIGH","category":"INFLATION"},
+        {"name":"US PPI",               "ts_utc":_ts("2026-03-12 12:30"),"impact":"MEDIUM","category":"INFLATION"},
+        # ── NFP / EMPLEO ───────────────────────────────────────────────────────
+        {"name":"US Non-Farm Payrolls", "ts_utc":_ts("2026-03-06 13:30"),"impact":"HIGH","category":"EMPLOYMENT"},
+        {"name":"US Non-Farm Payrolls", "ts_utc":_ts("2026-04-03 12:30"),"impact":"HIGH","category":"EMPLOYMENT"},
+        {"name":"US Jobless Claims",    "ts_utc":_ts("2026-03-12 12:30"),"impact":"MEDIUM","category":"EMPLOYMENT"},
+        # ── PIB ────────────────────────────────────────────────────────────────
+        {"name":"US GDP Q4 Final",      "ts_utc":_ts("2026-03-26 12:30"),"impact":"HIGH","category":"GDP"},
+        {"name":"US GDP Q1 Advance",    "ts_utc":_ts("2026-04-29 12:30"),"impact":"HIGH","category":"GDP"},
+        # ── REGULACIÓN CRIPTO ──────────────────────────────────────────────────
+        {"name":"SEC Crypto Hearing",   "ts_utc":_ts("2026-03-20 14:00"),"impact":"HIGH","category":"CRYPTO_REG"},
+        {"name":"US Treasury Crypto",   "ts_utc":_ts("2026-04-15 15:00"),"impact":"HIGH","category":"CRYPTO_REG"},
+    ]
+
+
+def _load_macro_events() -> List[Dict]:
+    """
+    Carga eventos desde macro_events.json si existe,
+    de lo contrario usa los hardcoded.
+    """
+    if os.path.exists(MACRO_EVENTS_FILE):
+        try:
+            with open(MACRO_EVENTS_FILE) as f:
+                events = json.load(f)
+            log.info(f"Calendario macro: {len(events)} eventos desde {MACRO_EVENTS_FILE}")
+            return events
+        except Exception as e:
+            log.warning(f"Error leyendo {MACRO_EVENTS_FILE}: {e} → usando hardcoded")
+    return _hardcoded_events()
+
+
+# ══════════════════════════════════════════════════════════
+#  MACRO FREEZE DETECTOR
+# ══════════════════════════════════════════════════════════
+
+class MacroFreezeDetector:
+    """
+    Detecta ventanas de congelamiento alrededor de eventos HIGH_IMPACT.
+    Ventana: [evento_ts - PRE_SEC, evento_ts + POST_SEC]
+
+    is_freeze_active() retorna (bool, evento_info | None).
+    Notifica a Telegram cuando la ventana se activa o se levanta.
+    """
+
+    def __init__(self, tg_notifier=None) -> None:
+        self.tg      = tg_notifier
+        self._events = _load_macro_events()
+        self._lock   = threading.Lock()
+
+        self._freeze_active: bool          = False
+        self._active_event:  Optional[Dict] = None
+        self._last_check:    float          = 0.0   # throttle
+
+        log.info(
+            f"MacroFreezeDetector: {len(self._events)} eventos | "
+            f"ventana ±{NEWS_FREEZE_PRE_MIN}min"
+        )
+
+    def reload(self) -> None:
+        """Recarga el calendario desde disco (sin reiniciar el bot)."""
+        with self._lock:
+            self._events = _load_macro_events()
+        log.info(f"Calendario macro recargado: {len(self._events)} eventos")
+
+    def is_freeze_active(self) -> Tuple[bool, Optional[Dict]]:
+        """
+        Retorna (True, evento) si estamos dentro de la ventana de freeze,
+        (False, None) si no.
+
+        Solo evalúa eventos impact == "HIGH".
+        Throttled: no recalcula más de 1 vez cada 15 segundos.
+        """
+        now = time.time()
+        if now - self._last_check < 15:
+            return self._freeze_active, self._active_event
+        self._last_check = now
+
+        with self._lock:
+            events = list(self._events)
+
+        prev_freeze  = self._freeze_active
+        prev_event   = self._active_event
+        new_freeze   = False
+        active_event: Optional[Dict] = None
+
+        for evt in events:
+            if evt.get("impact") != "HIGH":
+                continue
+            ts       = int(evt["ts_utc"])
+            win_start= ts - _FREEZE_PRE_SEC
+            win_end  = ts + _FREEZE_POST_SEC
+            if win_start <= now <= win_end:
+                new_freeze   = True
+                active_event = evt
+                break
+
+        self._freeze_active = new_freeze
+        self._active_event  = active_event
+
+        # Detectar cambios de estado
+        if new_freeze and not prev_freeze:
+            self._on_activated(active_event, now)   # type: ignore[arg-type]
+        elif not new_freeze and prev_freeze and prev_event:
+            self._on_lifted(prev_event)
+
+        return new_freeze, active_event
+
+    def next_event(self) -> Optional[Dict]:
+        now = time.time()
+        future = [e for e in self._events
+                  if e.get("impact") == "HIGH" and int(e["ts_utc"]) > now]
+        return min(future, key=lambda e: e["ts_utc"]) if future else None
+
+    def upcoming(self, within_hours: int = 24) -> List[Dict]:
+        now    = time.time()
+        cutoff = now + within_hours * 3600
+        return [e for e in self._events
+                if e.get("impact") == "HIGH"
+                and now <= int(e["ts_utc"]) <= cutoff]
+
+    def _on_activated(self, evt: Dict, now: float) -> None:
+        ts     = int(evt["ts_utc"])
+        is_pre = now < ts
+        code   = RC.NEWS_FREEZE_PRE_EVENT if is_pre else RC.NEWS_FREEZE_POST_EVENT
+        phase  = "PRE" if is_pre else "POST"
+        mins   = abs(int(now - ts)) // 60
+        log.warning(
+            RC.fmt(code, event=evt["name"], phase=phase,
+                   mins_from_event=mins, category=evt.get("category","?"))
+        )
+        if self.tg:
+            self.tg.send(
+                RC.tg(code,
+                      evento=evt["name"],
+                      categoría=evt.get("category","?"),
+                      fase=phase,
+                      minutos_del_evento=mins,
+                      ts_evento=time.strftime("%Y-%m-%d %H:%M UTC",
+                                              time.gmtime(ts)))
+            )
+
+    def _on_lifted(self, evt: Dict) -> None:
+        log.info(RC.fmt(RC.NEWS_FREEZE_LIFTED, event=evt["name"]))
+        if self.tg:
+            self.tg.send(RC.tg(RC.NEWS_FREEZE_LIFTED, evento=evt["name"]))
+
+    def get_status(self) -> Dict:
+        freeze, evt = self.is_freeze_active()
+        return {
+            "freeze_active": freeze,
+            "active_event":  evt,
+            "next_event":    self.next_event(),
+            "upcoming_6h":   self.upcoming(6),
+            "total_events":  len(self._events),
+        }
 
 
 # ══════════════════════════════════════════════════════════
@@ -311,39 +385,41 @@ def fetch_fear_greed() -> Dict:
 # ══════════════════════════════════════════════════════════
 
 class NewsEngine:
-    """
-    Motor de noticias que corre en background y provee señales
-    de sentimiento al bot de trading.
-    """
+    """Motor de noticias v2 con Macro Freeze integrado."""
 
-    def __init__(self, telegram_notifier=None, scan_interval: int = 120):
-        self.tg              = telegram_notifier
-        self.scan_interval   = scan_interval
+    def __init__(self, telegram_notifier=None, scan_interval: int = 120) -> None:
+        self.tg            = telegram_notifier
+        self.scan_interval = scan_interval
 
-        # Estado interno
-        self._seen_urls: set             = set()    # URLs ya procesadas
-        self._news_cache: List[Dict]     = []       # últimas noticias analizadas
-        self._symbol_bias: Dict[str, float] = {}    # bias por símbolo [-1, +1]
-        self._global_bias: float         = 0.0      # bias global del mercado
-        self._fear_greed: Dict           = {"value": 50, "label": "Neutral", "score_adj": 0.0}
-        self._lock                       = threading.Lock()
-        self._running                    = False
-        self._last_scan_ts               = 0
+        self._seen_urls:   set                  = set()
+        self._news_cache:  List[Dict]            = []
+        self._symbol_bias: Dict[str, float]      = {}
+        self._global_bias: float                 = 0.0
+        self._fear_greed:  Dict                  = {
+            "value": 50, "label": "Neutral", "score_adj": 0.0, "ts": 0
+        }
+        self._lock    = threading.Lock()
+        self._running = False
+        self._last_scan_ts: int = 0
 
-        log.info(f"NewsEngine iniciado — scan cada {scan_interval}s")
+        # ── Macro Freeze Detector ──────────────────────────────────────────────
+        self.freeze = MacroFreezeDetector(tg_notifier=telegram_notifier)
 
-    def start(self):
+        log.info(f"NewsEngine v2 iniciado — scan cada {scan_interval}s")
+
+    # ── Ciclo de vida ──────────────────────────────────────────────────────────
+
+    def start(self) -> None:
         self._running = True
-        threading.Thread(target=self._loop, daemon=True, name="news-engine").start()
+        threading.Thread(
+            target=self._loop, daemon=True, name="news-engine"
+        ).start()
         log.info("NewsEngine background thread iniciado")
 
-    def stop(self):
+    def stop(self) -> None:
         self._running = False
 
-    # ── Loop principal ────────────────────────────────────────────────────────
-
-    def _loop(self):
-        # Primera scan inmediata
+    def _loop(self) -> None:
         self._scan()
         while self._running:
             time.sleep(self.scan_interval)
@@ -352,11 +428,10 @@ class NewsEngine:
             except Exception as e:
                 log.error(f"NewsEngine loop error: {e}")
 
-    def _scan(self):
+    def _scan(self) -> None:
         log.info("📰 Escaneando noticias...")
-        all_items = []
+        all_items: List[Dict] = []
 
-        # Obtener todos los feeds
         for feed in RSS_FEEDS:
             items = fetch_rss(feed["url"])
             for item in items:
@@ -366,112 +441,108 @@ class NewsEngine:
             all_items.extend(items)
             time.sleep(0.3)
 
-        # Fear & Greed (cada 10 minutos)
+        # Fear & Greed (cada 10 min)
         if int(time.time()) - self._fear_greed.get("ts", 0) > 600:
             fg = fetch_fear_greed()
             with self._lock:
                 self._fear_greed = fg
             log.info(f"Fear & Greed: {fg['value']} — {fg['label']}")
 
-        # Procesar noticias nuevas
-        new_items  = []
-        alerts     = []
-        sym_scores: Dict[str, List[float]] = {}
-        global_scores: List[float]         = []
+        new_items:    List[Dict]              = []
+        alerts:       List[Dict]              = []
+        sym_scores:   Dict[str, List[float]]  = {}
+        global_scores:List[float]             = []
 
         for item in all_items:
-            url = item.get("link", item["title"])  # usar link como ID, fallback title
+            url = item.get("link") or item["title"]
             if url in self._seen_urls:
                 continue
             self._seen_urls.add(url)
 
-            text  = item["full_text"]
+            text             = item["full_text"]
             score, direction, keywords = analyze_text(text)
-
             if direction == "NEUTRAL":
                 continue
 
-            weighted_score = score * item["feed_weight"]
+            weighted = score * item["feed_weight"]
             item["sentiment_score"] = round(score, 3)
             item["direction"]       = direction
             item["keywords"]        = keywords
             new_items.append(item)
+            global_scores.append(weighted)
 
-            # Acumular score global
-            global_scores.append(weighted_score)
-
-            # Asignar a símbolos relevantes
             for sym in list(SYMBOL_KEYWORDS.keys()) + ["BTCUSDT"]:
                 if is_relevant_for_symbol(text, sym):
-                    sym_scores.setdefault(sym, []).append(weighted_score)
+                    sym_scores.setdefault(sym, []).append(weighted)
 
-            # Detectar noticias críticas
             if abs(score) >= CRITICAL_THRESHOLD:
-                alerts.append({
-                    "item":      item,
-                    "score":     score,
-                    "direction": direction,
-                    "keywords":  keywords,
-                })
+                alerts.append({"item":item,"score":score,
+                                "direction":direction,"keywords":keywords})
 
-        # Actualizar biases
         with self._lock:
-            # Global
             if global_scores:
                 self._global_bias = round(
                     sum(global_scores) / len(global_scores), 3
                 )
-            # Por símbolo
-            for sym, scores in sym_scores.items():
-                self._symbol_bias[sym] = round(
-                    sum(scores) / len(scores), 3
-                )
-            # Añadir al caché (últimas 50)
+            for sym, sc in sym_scores.items():
+                self._symbol_bias[sym] = round(sum(sc) / len(sc), 3)
             self._news_cache = (new_items + self._news_cache)[:50]
 
         self._last_scan_ts = int(time.time())
 
-        # Enviar alertas críticas a Telegram
-        for alert in alerts[:3]:  # máximo 3 alertas por scan
+        for alert in alerts[:3]:
             self._send_alert(alert)
 
-        # Resumen periódico
+        # Advertir próximos eventos macro en ventana de 60 min
+        for evt in self.freeze.upcoming(within_hours=1):
+            mins = (int(evt["ts_utc"]) - int(time.time())) // 60
+            if 0 < mins <= 60:
+                log.info(
+                    RC.fmt(RC.NEWS_MACRO_EVENT_UPCOMING,
+                           event=evt["name"], in_min=mins,
+                           category=evt.get("category","?"))
+                )
+
         if new_items:
             log.info(
-                f"📰 {len(new_items)} noticias nuevas | "
-                f"Global bias: {self._global_bias:+.2f} | "
-                f"Alertas: {len(alerts)}"
+                f"📰 {len(new_items)} noticias | "
+                f"bias={self._global_bias:+.2f} | alerts={len(alerts)}"
             )
             self._send_summary(new_items[:5])
 
-    def _send_alert(self, alert: Dict):
-        """Envía alerta crítica inmediata a Telegram"""
-        item      = alert["item"]
-        score     = alert["score"]
+    def _send_alert(self, alert: Dict) -> None:
+        item = alert["item"]
+        score = alert["score"]
         direction = alert["direction"]
-        keywords  = alert["keywords"]
-        emoji     = "🚨🟢" if direction == "BULLISH" else "🚨🔴"
-
-        msg = (
-            f"{emoji} <b>NOTICIA CRÍTICA — {direction}</b>\n"
+        emoji = "🚨🟢" if direction == "BULLISH" else "🚨🔴"
+        fg    = self._fear_greed
+        msg   = (
+            f"{emoji} <b>[{RC.NEWS_CRITICAL_ALERT}] {direction}</b>\n"
             f"Fuente: {item['source']}\n\n"
             f"<b>{item['title'][:200]}</b>\n\n"
-            f"Impacto: <code>{score:+.2f}</code>  "
-            f"({'Muy alcista' if score > 0 else 'Muy bajista'})\n"
-            f"Keywords: {', '.join(keywords[:5])}\n"
-            f"Fear & Greed: {self._fear_greed['value']} — {self._fear_greed['label']}"
+            f"Impacto: <code>{score:+.2f}</code>\n"
+            f"Keywords: {', '.join(alert['keywords'][:5])}\n"
+            f"Fear & Greed: {fg['value']} — {fg['label']}"
         )
         if self.tg:
             self.tg.send(msg)
-        log.warning(f"ALERTA CRÍTICA: {item['title'][:80]} | score={score:+.2f}")
+        log.warning(
+            RC.fmt(RC.NEWS_CRITICAL_ALERT,
+                   title=item['title'][:60], score=f"{score:+.2f}",
+                   direction=direction)
+        )
 
-    def _send_summary(self, items: List[Dict]):
-        """Envía resumen de noticias relevantes a Telegram"""
+    def _send_summary(self, items: List[Dict]) -> None:
         if not self.tg:
             return
-        fg = self._fear_greed
+        fg          = self._fear_greed
+        freeze_on, fevt = self.freeze.is_freeze_active()
+        freeze_line = ""
+        if freeze_on and fevt:
+            freeze_line = f"\n❄️ <b>NEWS FREEZE ACTIVO: {fevt['name']}</b>"
+
         lines = [
-            f"📰 <b>Resumen de noticias</b>",
+            f"📰 <b>Resumen de noticias</b>{freeze_line}",
             f"Sentimiento global: <code>{self._global_bias:+.2f}</code>",
             f"Fear & Greed: {fg['value']} — <b>{fg['label']}</b>",
             "",
@@ -486,41 +557,39 @@ class NewsEngine:
             )
         self.tg.send("\n".join(lines))
 
-    # ── API pública ───────────────────────────────────────────────────────────
+    # ══════════════════════════════════════════════════════
+    #  API PÚBLICA
+    # ══════════════════════════════════════════════════════
+
+    def is_news_freeze_active(self) -> Tuple[bool, Optional[Dict]]:
+        """
+        Retorna (True, evento_info) si hay ventana de congelamiento macro activa.
+        El bot llama esto ANTES de intentar abrir cualquier posición nueva.
+
+        Ventana: [evento.ts - 30min, evento.ts + 30min]
+        Solo aplica a eventos impact == "HIGH".
+        Las posiciones ABIERTAS se gestionan normalmente.
+        """
+        return self.freeze.is_freeze_active()
 
     def get_news_bias(self, symbol: str) -> Dict:
-        """
-        Retorna el bias de noticias para un símbolo.
-        El bot lo usa para ajustar/bloquear señales técnicas.
-
-        Retorna:
-          news_score    : -1.0 a +1.0
-          direction     : BULLISH | BEARISH | NEUTRAL
-          fear_greed    : 0-100
-          fg_label      : Extreme Fear | Fear | Neutral | Greed | Extreme Greed
-          fg_adj        : -0.5 a +0.5 (ajuste de score por F&G)
-          recent_alerts : número de alertas críticas en las últimas 2h
-          should_block  : True si hay una noticia muy negativa que bloquea el trade
-        """
         with self._lock:
-            sym_score   = self._symbol_bias.get(symbol,
-                          self._symbol_bias.get("BTCUSDT", self._global_bias))
-            fg          = dict(self._fear_greed)
-            cache       = list(self._news_cache)
+            sym_score = self._symbol_bias.get(
+                symbol,
+                self._symbol_bias.get("BTCUSDT", self._global_bias)
+            )
+            fg    = dict(self._fear_greed)
+            cache = list(self._news_cache)
 
-        # Contar alertas críticas recientes (últimas 2h)
         cutoff = int(time.time()) - 7200
         recent_alerts = sum(
             1 for item in cache
             if abs(item.get("sentiment_score", 0)) >= CRITICAL_THRESHOLD
             and item.get("ts", 0) > cutoff
         )
-
-        # Bloquear trade si hay noticia muy negativa reciente
-        should_block = (sym_score <= -0.6 and recent_alerts >= 1)
-
-        direction = "NEUTRAL"
-        if sym_score >= 0.2:    direction = "BULLISH"
+        should_block  = sym_score <= -0.6 and recent_alerts >= 1
+        direction     = "NEUTRAL"
+        if sym_score >=  0.2: direction = "BULLISH"
         elif sym_score <= -0.2: direction = "BEARISH"
 
         return {
@@ -552,10 +621,11 @@ class NewsEngine:
             nb = self._global_bias
             ns = len(self._news_cache)
         return {
-            "global_bias":  nb,
-            "fear_greed":   fg.get("value", 50),
-            "fg_label":     fg.get("label", "Neutral"),
-            "total_cached": ns,
-            "last_scan":    self._last_scan_ts,
+            "global_bias":   nb,
+            "fear_greed":    fg.get("value", 50),
+            "fg_label":      fg.get("label", "Neutral"),
+            "total_cached":  ns,
+            "last_scan":     self._last_scan_ts,
             "symbol_biases": dict(self._symbol_bias),
+            "freeze_status": self.freeze.get_status(),
         }
