@@ -56,6 +56,7 @@ AUTO_SCAN_ENABLED= os.getenv("AUTO_SCAN","true").lower() in ("1","true","yes")
 MIN_VOLUME_USDT  = float(os.getenv("MIN_VOLUME_USDT","5000000"))
 TG_TOKEN         = os.getenv("TELEGRAM_BOT_TOKEN","").strip()
 TG_CHAT_ID       = os.getenv("TELEGRAM_CHAT_ID",  "").strip()
+STRATEGY_TIMEFRAME_MIN = {"FAST": 5, "NORMAL": 15, "INSTITUTIONAL": 240}
 
 FIXED_WATCHLIST: List[str] = [
     s.strip() for s in
@@ -459,6 +460,40 @@ class AutonomousBot:
                     continue
                 side = "LONG" if p["side"] == "Buy" else "SHORT"
                 ep   = float(p.get("avgPrice", 0))
+                
+                # Rescatar la memoria local (El Amnesia Fix)
+                existing = self.open_positions.get(sym, {})
+                
+                # ¡ESTA ES LA LÍNEA QUE FALTABA!
+                st = existing.get("strategy_type", "NORMAL") 
+                
+                # Y aquí usamos 'st' de forma segura
+                tf_m = existing.get("tf_minutes", {"FAST": 5, "NORMAL": 15, "INSTITUTIONAL": 240}.get(st, 15))
+                
+                open_ts = existing.get("open_ts")
+                if not open_ts:
+                    open_ts = int(time.time())
+
+                new_pos[sym] = {
+                    "trade_id":          existing.get("trade_id", f"sync_{sym}"),
+                    "symbol":            sym,
+                    "side":              side,
+                    "entry_price":       ep,
+                    "qty":               float(p.get("size", 0)),
+                    "leverage":          int(float(p.get("leverage", 10))),
+                    "tp":                float(p.get("takeProfit", 0)) or existing.get("tp"),
+                    "sl":                float(p.get("stopLoss", 0)) or existing.get("sl"),
+                    "open_ts":           open_ts,
+                    "peak_price":        existing.get("peak_price", ep),
+                    "atr":               existing.get("atr"),
+                    "ai_decision":       existing.get("ai_decision"),
+                    "strategy_type":     st,
+                    "tf_minutes":        tf_m,
+                    "next_eval_ts":      existing.get("next_eval_ts", self._get_next_bar_close_ts(tf_m)),
+                    "last_eval_price":   existing.get("last_eval_price", ep),
+                    "sl_at_breakeven":   existing.get("sl_at_breakeven", False),
+                    "last_news_alert_ts":existing.get("last_news_alert_ts", 0),
+                }
 
                 # ── Recuperar estado local existente para este símbolo ─────────
                 # Leer bajo lock para evitar race con el monitor
@@ -483,7 +518,7 @@ class AutonomousBot:
                 # ── tf_minutes: leer de existing si existe, calcular si no ─────
                 st_existing  = existing.get("strategy_type", "NORMAL")
                 tf_m_default = STRATEGY_TIMEFRAME_MIN.get(st_existing, 15)
-                tf_m         = existing.get("tf_minutes", tf_m_default)
+                tf_m = existing.get("tf_minutes", {"FAST": 5, "NORMAL": 15, "INSTITUTIONAL": 240}.get(st, 15))
 
                 # ── next_eval_ts: preservar si existe, programar si es nueva ───
                 next_eval_ts = (

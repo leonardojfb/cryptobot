@@ -33132,3 +33132,172 @@ telegram.error.Conflict: Conflict: terminated by other getUpdates request; make 
 2026-03-07 20:19:04,963 [INFO] main — ⛔ Deteniendo...
 2026-03-07 20:19:04,963 [INFO] bot — [SYSTEM_BOT_STOPPED] ⛔ Bot detenido
 2026-03-07 20:19:04,963 [INFO] main — Bot detenido.
+2026-03-07 20:21:33,990 [INFO] main — ============================================================
+2026-03-07 20:21:33,991 [INFO] main —   BOT AUTÓNOMO — BYBIT PAPER TRADING  v3
+2026-03-07 20:21:33,991 [INFO] main — ============================================================
+2026-03-07 20:21:33,991 [INFO] main — Modo: PAPER (api-demo.bybit.com)
+2026-03-07 20:21:39,223 [INFO] ai_memory — ✅ ai_memory.db inicializada en ai_memory.db
+2026-03-07 20:21:39,223 [INFO] ai_filter — AIFilter v4 ✅ Activo model=deepseek-chat
+2026-03-07 20:21:39,639 [INFO] notify_prefs — notify_prefs cargadas: 4/9 activas
+2026-03-07 20:21:39,640 [INFO] bybit_client — BybitClient → DEMO (api-demo.bybit.com)
+2026-03-07 20:21:39,641 [INFO] bybit_client — API Key: zUCvRj...0KEa
+2026-03-07 20:21:39,644 [INFO] learning_engine — LearningEngine v3 — 19 trades cerrados
+2026-03-07 20:21:39,645 [INFO] bot — TelegramNotifier activo
+2026-03-07 20:21:39,645 [INFO] risk_manager — [RISK_STATE_LOADED] RISK_STATE_LOADED | daily_pnl=+284.72 | dd_locked=False
+2026-03-07 20:21:39,645 [INFO] risk_manager — RiskManager v3 | daily_pnl=+284.72 | dd_locked=False | consec=0
+2026-03-07 20:21:39,646 [INFO] news_engine — MacroFreezeDetector: 16 eventos | ventana ±30min
+2026-03-07 20:21:39,646 [INFO] news_engine — NewsEngine v2 iniciado — scan cada 120s
+2026-03-07 20:21:40,361 [ERROR] bot — _sync_positions: name 'STRATEGY_TIMEFRAME_MIN' is not defined
+2026-03-07 20:21:40,362 [INFO] bot — [SYSTEM_BOT_STARTED] 🤖 Bot iniciado y activo | mode=🟡 PAPER | watchlist=BTCUSDT,ETHUSDT,SOLUSDT,BNBUSDT,XRPUSDT
+2026-03-07 20:21:41,052 [INFO] main — ✅ Datos de mercado OK — BTC: 67,338.99 USDT
+2026-03-07 20:21:42,522 [INFO] bybit_client — ✅ Autenticación API verificada OK
+2026-03-07 20:21:42,909 [INFO] main — ✅ Auth OK — Balance USDT disponible: 52,167.06
+2026-03-07 20:21:42,909 [INFO] tg_controller — [INIT] Iniciando Telegram bot controller...
+2026-03-07 20:21:42,909 [INFO] main — ✅ Telegram controller iniciado
+2026-03-07 20:21:42,910 [INFO] tg_controller — [INIT] BOT_INSTANCE asignado correctamente
+2026-03-07 20:21:42,910 [INFO] news_engine — 📰 Escaneando noticias...
+2026-03-07 20:21:42,911 [INFO] news_engine — NewsEngine background thread iniciado
+2026-03-07 20:21:42,936 [INFO] bot — Escáner iniciado
+2026-03-07 20:21:42,937 [INFO] bot — Monitor iniciado
+2026-03-07 20:21:42,938 [INFO] bot — [SYSTEM_BOT_STARTED] 🤖 Bot iniciado y activo | mode=running
+2026-03-07 20:21:42,939 [INFO] main — 🚀 Bot activo | Watchlist: BTCUSDT,ETHUSDT,SOLUSDT,BNBUSDT,XRPUSDT
+2026-03-07 20:21:42,939 [INFO] main —    TFs analizados: 1m 3m 5m 15m 30m 1h 2h 4h 6h 12h 1D 1W (12 TFs)
+2026-03-07 20:21:42,939 [INFO] main —    Scan: 30s | Monitor: 10s
+2026-03-07 20:21:43,553 [INFO] tg_controller — [INIT] Registrando 30 comandos...
+2026-03-07 20:21:43,554 [INFO] tg_controller — [INIT] Registrando CallbackQueryHandler para botones inline
+2026-03-07 20:21:43,554 [INFO] tg_controller — ✅ Telegram bot iniciado — 30 comandos + inline buttons
+2026-03-07 20:21:43,554 [INFO] tg_controller — [INIT] ⏳ Polling iniciado - esperando mensajes y interacciones de usuarios...
+2026-03-07 20:21:43,596 [INFO] main — ✅ | Bal: 52167.06 USDT | Pos: 0 | Trades: 19 | WR: 26.3% | PnL: +2006.02 USDT
+2026-03-07 20:21:44,016 [ERROR] bot — _sync_positions: name 'STRATEGY_TIMEFRAME_MIN' is not defined
+2026-03-07 20:21:44,294 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot7279484602:AAHEmO2zdxL5JAR8oZ2HKOjVGXtWUCoXZhU/getMe "HTTP/1.1 200 OK"
+2026-03-07 20:21:44,661 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot7279484602:AAHEmO2zdxL5JAR8oZ2HKOjVGXtWUCoXZhU/setMyCommands "HTTP/1.1 200 OK"
+2026-03-07 20:21:44,663 [INFO] tg_controller — ✅ 30 comandos registrados en BotFather
+2026-03-07 20:21:44,907 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot7279484602:AAHEmO2zdxL5JAR8oZ2HKOjVGXtWUCoXZhU/deleteWebhook "HTTP/1.1 200 OK"
+2026-03-07 20:21:44,910 [INFO] telegram.ext.Application — Application started
+2026-03-07 20:21:48,061 [INFO] news_engine — Fear & Greed: 12 — Extreme Fear
+2026-03-07 20:21:48,065 [INFO] news_engine — 📰 20 noticias | bias=-0.06 | alerts=0
+2026-03-07 20:21:55,619 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot7279484602:AAHEmO2zdxL5JAR8oZ2HKOjVGXtWUCoXZhU/getUpdates "HTTP/1.1 200 OK"
+2026-03-07 20:21:57,075 [INFO] bot — 📊 BTCUSDT: FLAT   score=-2.10  conf=30%  macro=SHORT  mid=NEUTRAL  entry=NEUTRAL  ⚡🌊🪟🎯
+2026-03-07 20:22:05,859 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot7279484602:AAHEmO2zdxL5JAR8oZ2HKOjVGXtWUCoXZhU/getUpdates "HTTP/1.1 200 OK"
+2026-03-07 20:22:11,627 [INFO] bot — 📊 ETHUSDT: FLAT   score=-0.70  conf=10%  macro=SHORT  mid=NEUTRAL  entry=NEUTRAL  ⚡🌊🪟🎯
+2026-03-07 20:22:16,102 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot7279484602:AAHEmO2zdxL5JAR8oZ2HKOjVGXtWUCoXZhU/getUpdates "HTTP/1.1 200 OK"
+2026-03-07 20:22:19,238 [INFO] main — ⛔ Deteniendo...
+2026-03-07 20:22:19,239 [INFO] bot — [SYSTEM_BOT_STOPPED] ⛔ Bot detenido
+2026-03-07 20:22:19,239 [INFO] main — Bot detenido.
+2026-03-07 20:24:11,958 [INFO] main — ============================================================
+2026-03-07 20:24:11,959 [INFO] main —   BOT AUTÓNOMO — BYBIT PAPER TRADING  v3
+2026-03-07 20:24:11,959 [INFO] main — ============================================================
+2026-03-07 20:24:11,959 [INFO] main — Modo: PAPER (api-demo.bybit.com)
+2026-03-07 20:24:12,615 [INFO] ai_memory — ✅ ai_memory.db inicializada en ai_memory.db
+2026-03-07 20:24:12,615 [INFO] ai_filter — AIFilter v4 ✅ Activo model=deepseek-chat
+2026-03-07 20:24:12,804 [INFO] notify_prefs — notify_prefs cargadas: 4/9 activas
+2026-03-07 20:24:12,805 [INFO] bybit_client — BybitClient → DEMO (api-demo.bybit.com)
+2026-03-07 20:24:12,805 [INFO] bybit_client — API Key: zUCvRj...0KEa
+2026-03-07 20:24:12,808 [INFO] learning_engine — LearningEngine v3 — 19 trades cerrados
+2026-03-07 20:24:12,809 [INFO] bot — TelegramNotifier activo
+2026-03-07 20:24:12,809 [INFO] risk_manager — [RISK_STATE_LOADED] RISK_STATE_LOADED | daily_pnl=+284.72 | dd_locked=False
+2026-03-07 20:24:12,809 [INFO] risk_manager — RiskManager v3 | daily_pnl=+284.72 | dd_locked=False | consec=0
+2026-03-07 20:24:12,810 [INFO] news_engine — MacroFreezeDetector: 16 eventos | ventana ±30min
+2026-03-07 20:24:12,810 [INFO] news_engine — NewsEngine v2 iniciado — scan cada 120s
+2026-03-07 20:24:13,504 [ERROR] bot — _sync_positions: cannot access local variable 'st' where it is not associated with a value
+2026-03-07 20:24:13,504 [INFO] bot — [SYSTEM_BOT_STARTED] 🤖 Bot iniciado y activo | mode=🟡 PAPER | watchlist=BTCUSDT,ETHUSDT,SOLUSDT,BNBUSDT,XRPUSDT
+2026-03-07 20:24:14,188 [INFO] main — ✅ Datos de mercado OK — BTC: 67,354.10 USDT
+2026-03-07 20:24:14,562 [INFO] bybit_client — ✅ Autenticación API verificada OK
+2026-03-07 20:24:14,936 [INFO] main — ✅ Auth OK — Balance USDT disponible: 52,167.06
+2026-03-07 20:24:14,936 [INFO] tg_controller — [INIT] Iniciando Telegram bot controller...
+2026-03-07 20:24:14,936 [INFO] main — ✅ Telegram controller iniciado
+2026-03-07 20:24:14,937 [INFO] tg_controller — [INIT] BOT_INSTANCE asignado correctamente
+2026-03-07 20:24:14,937 [INFO] news_engine — 📰 Escaneando noticias...
+2026-03-07 20:24:14,937 [INFO] news_engine — NewsEngine background thread iniciado
+2026-03-07 20:24:14,938 [INFO] bot — Escáner iniciado
+2026-03-07 20:24:14,960 [INFO] bot — [SYSTEM_BOT_STARTED] 🤖 Bot iniciado y activo | mode=running
+2026-03-07 20:24:14,960 [INFO] bot — Monitor iniciado
+2026-03-07 20:24:14,961 [INFO] main — 🚀 Bot activo | Watchlist: BTCUSDT,ETHUSDT,SOLUSDT,BNBUSDT,XRPUSDT
+2026-03-07 20:24:14,962 [INFO] main —    TFs analizados: 1m 3m 5m 15m 30m 1h 2h 4h 6h 12h 1D 1W (12 TFs)
+2026-03-07 20:24:14,963 [INFO] main —    Scan: 30s | Monitor: 10s
+2026-03-07 20:24:15,534 [INFO] tg_controller — [INIT] Registrando 30 comandos...
+2026-03-07 20:24:15,535 [INFO] tg_controller — [INIT] Registrando CallbackQueryHandler para botones inline
+2026-03-07 20:24:15,535 [INFO] tg_controller — ✅ Telegram bot iniciado — 30 comandos + inline buttons
+2026-03-07 20:24:15,535 [INFO] tg_controller — [INIT] ⏳ Polling iniciado - esperando mensajes y interacciones de usuarios...
+2026-03-07 20:24:15,678 [INFO] main — ✅ | Bal: 52167.06 USDT | Pos: 0 | Trades: 19 | WR: 26.3% | PnL: +2006.02 USDT
+2026-03-07 20:24:16,044 [ERROR] bot — _sync_positions: cannot access local variable 'st' where it is not associated with a value
+2026-03-07 20:24:16,243 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot7279484602:AAHEmO2zdxL5JAR8oZ2HKOjVGXtWUCoXZhU/getMe "HTTP/1.1 200 OK"
+2026-03-07 20:24:16,603 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot7279484602:AAHEmO2zdxL5JAR8oZ2HKOjVGXtWUCoXZhU/setMyCommands "HTTP/1.1 200 OK"
+2026-03-07 20:24:16,605 [INFO] tg_controller — ✅ 30 comandos registrados en BotFather
+2026-03-07 20:24:16,840 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot7279484602:AAHEmO2zdxL5JAR8oZ2HKOjVGXtWUCoXZhU/deleteWebhook "HTTP/1.1 200 OK"
+2026-03-07 20:24:16,842 [INFO] telegram.ext.Application — Application started
+2026-03-07 20:24:19,658 [INFO] news_engine — Fear & Greed: 12 — Extreme Fear
+2026-03-07 20:24:19,661 [INFO] news_engine — 📰 20 noticias | bias=-0.06 | alerts=0
+2026-03-07 20:24:27,529 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot7279484602:AAHEmO2zdxL5JAR8oZ2HKOjVGXtWUCoXZhU/getUpdates "HTTP/1.1 200 OK"
+2026-03-07 20:24:28,652 [INFO] bot — 📊 BTCUSDT: FLAT   score=-1.70  conf=28%  macro=SHORT  mid=NEUTRAL  entry=NEUTRAL  ⚡🌊🧱🪟🎯
+2026-03-07 20:24:37,758 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot7279484602:AAHEmO2zdxL5JAR8oZ2HKOjVGXtWUCoXZhU/getUpdates "HTTP/1.1 200 OK"
+2026-03-07 20:24:45,206 [INFO] bot — 📊 ETHUSDT: FLAT   score=-0.69  conf=10%  macro=SHORT  mid=NEUTRAL  entry=NEUTRAL  ⚡🌊🪟🎯
+2026-03-07 20:24:47,991 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot7279484602:AAHEmO2zdxL5JAR8oZ2HKOjVGXtWUCoXZhU/getUpdates "HTTP/1.1 200 OK"
+2026-03-07 20:24:58,222 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot7279484602:AAHEmO2zdxL5JAR8oZ2HKOjVGXtWUCoXZhU/getUpdates "HTTP/1.1 200 OK"
+2026-03-07 20:25:00,610 [INFO] bot — 📊 SOLUSDT: FLAT   score=-2.40  conf=34%  macro=SHORT  mid=NEUTRAL  entry=NEUTRAL  ⚡🌊🪟🎯
+2026-03-07 20:25:08,455 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot7279484602:AAHEmO2zdxL5JAR8oZ2HKOjVGXtWUCoXZhU/getUpdates "HTTP/1.1 200 OK"
+2026-03-07 20:25:15,296 [INFO] bot — 📊 BNBUSDT: FLAT   score=-1.70  conf=24%  macro=SHORT  mid=NEUTRAL  entry=NEUTRAL  🌊🪟🎯
+2026-03-07 20:25:16,756 [INFO] main — ✅ | Bal: 52167.06 USDT | Pos: 0 | Trades: 19 | WR: 26.3% | PnL: +2006.02 USDT
+2026-03-07 20:25:18,686 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot7279484602:AAHEmO2zdxL5JAR8oZ2HKOjVGXtWUCoXZhU/getUpdates "HTTP/1.1 200 OK"
+2026-03-07 20:25:28,285 [INFO] bot — 📊 XRPUSDT: FLAT   score=-0.80  conf=10%  macro=NEUTRAL  mid=SHORT  entry=LONG  ⚡🧱🎯
+2026-03-07 20:25:28,916 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot7279484602:AAHEmO2zdxL5JAR8oZ2HKOjVGXtWUCoXZhU/getUpdates "HTTP/1.1 200 OK"
+2026-03-07 20:25:29,786 [INFO] bot — 🔍 Auto-scan mercado...
+2026-03-07 20:25:39,154 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot7279484602:AAHEmO2zdxL5JAR8oZ2HKOjVGXtWUCoXZhU/getUpdates "HTTP/1.1 200 OK"
+2026-03-07 20:25:49,386 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot7279484602:AAHEmO2zdxL5JAR8oZ2HKOjVGXtWUCoXZhU/getUpdates "HTTP/1.1 200 OK"
+2026-03-07 20:25:59,615 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot7279484602:AAHEmO2zdxL5JAR8oZ2HKOjVGXtWUCoXZhU/getUpdates "HTTP/1.1 200 OK"
+2026-03-07 20:26:09,845 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot7279484602:AAHEmO2zdxL5JAR8oZ2HKOjVGXtWUCoXZhU/getUpdates "HTTP/1.1 200 OK"
+2026-03-07 20:26:17,142 [INFO] main — ✅ | Bal: 52167.06 USDT | Pos: 0 | Trades: 19 | WR: 26.3% | PnL: +2006.02 USDT
+2026-03-07 20:26:19,661 [INFO] news_engine — 📰 Escaneando noticias...
+2026-03-07 20:26:20,078 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot7279484602:AAHEmO2zdxL5JAR8oZ2HKOjVGXtWUCoXZhU/getUpdates "HTTP/1.1 200 OK"
+2026-03-07 20:26:30,310 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot7279484602:AAHEmO2zdxL5JAR8oZ2HKOjVGXtWUCoXZhU/getUpdates "HTTP/1.1 200 OK"
+2026-03-07 20:26:36,844 [INFO] main — ⛔ Deteniendo...
+2026-03-07 20:26:36,844 [INFO] bot — [SYSTEM_BOT_STOPPED] ⛔ Bot detenido
+2026-03-07 20:26:36,845 [INFO] main — Bot detenido.
+2026-03-07 20:26:46,231 [INFO] main — ============================================================
+2026-03-07 20:26:46,232 [INFO] main —   BOT AUTÓNOMO — BYBIT PAPER TRADING  v3
+2026-03-07 20:26:46,232 [INFO] main — ============================================================
+2026-03-07 20:26:46,232 [INFO] main — Modo: PAPER (api-demo.bybit.com)
+2026-03-07 20:26:46,883 [INFO] ai_memory — ✅ ai_memory.db inicializada en ai_memory.db
+2026-03-07 20:26:46,883 [INFO] ai_filter — AIFilter v4 ✅ Activo model=deepseek-chat
+2026-03-07 20:26:47,089 [INFO] notify_prefs — notify_prefs cargadas: 4/9 activas
+2026-03-07 20:26:47,090 [INFO] bybit_client — BybitClient → DEMO (api-demo.bybit.com)
+2026-03-07 20:26:47,090 [INFO] bybit_client — API Key: zUCvRj...0KEa
+2026-03-07 20:26:47,094 [INFO] learning_engine — LearningEngine v3 — 19 trades cerrados
+2026-03-07 20:26:47,095 [INFO] bot — TelegramNotifier activo
+2026-03-07 20:26:47,096 [INFO] risk_manager — [RISK_STATE_LOADED] RISK_STATE_LOADED | daily_pnl=+284.72 | dd_locked=False
+2026-03-07 20:26:47,096 [INFO] risk_manager — RiskManager v3 | daily_pnl=+284.72 | dd_locked=False | consec=0
+2026-03-07 20:26:47,097 [INFO] news_engine — MacroFreezeDetector: 16 eventos | ventana ±30min
+2026-03-07 20:26:47,097 [INFO] news_engine — NewsEngine v2 iniciado — scan cada 120s
+2026-03-07 20:26:47,912 [ERROR] bot — _sync_positions: 'AutonomousBot' object has no attribute '_get_next_bar_close_ts'
+2026-03-07 20:26:47,912 [INFO] bot — [SYSTEM_BOT_STARTED] 🤖 Bot iniciado y activo | mode=🟡 PAPER | watchlist=BTCUSDT,ETHUSDT,SOLUSDT,BNBUSDT,XRPUSDT
+2026-03-07 20:26:48,538 [INFO] main — ✅ Datos de mercado OK — BTC: 67,311.84 USDT
+2026-03-07 20:26:49,614 [INFO] bybit_client — ✅ Autenticación API verificada OK
+2026-03-07 20:26:50,001 [INFO] main — ✅ Auth OK — Balance USDT disponible: 52,167.06
+2026-03-07 20:26:50,003 [INFO] tg_controller — [INIT] Iniciando Telegram bot controller...
+2026-03-07 20:26:50,003 [INFO] main — ✅ Telegram controller iniciado
+2026-03-07 20:26:50,003 [INFO] tg_controller — [INIT] BOT_INSTANCE asignado correctamente
+2026-03-07 20:26:50,004 [INFO] news_engine — 📰 Escaneando noticias...
+2026-03-07 20:26:50,004 [INFO] news_engine — NewsEngine background thread iniciado
+2026-03-07 20:26:50,005 [INFO] bot — Escáner iniciado
+2026-03-07 20:26:50,023 [INFO] bot — Monitor iniciado
+2026-03-07 20:26:50,026 [INFO] bot — [SYSTEM_BOT_STARTED] 🤖 Bot iniciado y activo | mode=running
+2026-03-07 20:26:50,027 [INFO] main — 🚀 Bot activo | Watchlist: BTCUSDT,ETHUSDT,SOLUSDT,BNBUSDT,XRPUSDT
+2026-03-07 20:26:50,027 [INFO] main —    TFs analizados: 1m 3m 5m 15m 30m 1h 2h 4h 6h 12h 1D 1W (12 TFs)
+2026-03-07 20:26:50,027 [INFO] main —    Scan: 30s | Monitor: 10s
+2026-03-07 20:26:50,414 [ERROR] bot — _sync_positions: 'AutonomousBot' object has no attribute '_get_next_bar_close_ts'
+2026-03-07 20:26:50,666 [INFO] tg_controller — [INIT] Registrando 30 comandos...
+2026-03-07 20:26:50,666 [INFO] tg_controller — [INIT] Registrando CallbackQueryHandler para botones inline
+2026-03-07 20:26:50,667 [INFO] tg_controller — ✅ Telegram bot iniciado — 30 comandos + inline buttons
+2026-03-07 20:26:50,667 [INFO] tg_controller — [INIT] ⏳ Polling iniciado - esperando mensajes y interacciones de usuarios...
+2026-03-07 20:26:50,740 [INFO] main — ✅ | Bal: 52167.06 USDT | Pos: 0 | Trades: 19 | WR: 26.3% | PnL: +2006.02 USDT
+2026-03-07 20:26:53,009 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot7279484602:AAHEmO2zdxL5JAR8oZ2HKOjVGXtWUCoXZhU/getMe "HTTP/1.1 200 OK"
+2026-03-07 20:26:54,735 [INFO] news_engine — Fear & Greed: 12 — Extreme Fear
+2026-03-07 20:26:54,738 [INFO] news_engine — 📰 20 noticias | bias=-0.06 | alerts=0
+2026-03-07 20:26:54,936 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot7279484602:AAHEmO2zdxL5JAR8oZ2HKOjVGXtWUCoXZhU/setMyCommands "HTTP/1.1 200 OK"
+2026-03-07 20:26:54,938 [INFO] tg_controller — ✅ 30 comandos registrados en BotFather
+2026-03-07 20:26:56,398 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot7279484602:AAHEmO2zdxL5JAR8oZ2HKOjVGXtWUCoXZhU/deleteWebhook "HTTP/1.1 200 OK"
+2026-03-07 20:26:56,400 [INFO] telegram.ext.Application — Application started
+2026-03-07 20:27:00,745 [INFO] bot — 📊 BTCUSDT: FLAT   score=-1.94  conf=28%  macro=SHORT  mid=NEUTRAL  entry=NEUTRAL  ⚡🌊🪟🎯
+2026-03-07 20:27:02,310 [INFO] main — ⛔ Deteniendo...
+2026-03-07 20:27:02,310 [INFO] bot — [SYSTEM_BOT_STOPPED] ⛔ Bot detenido
+2026-03-07 20:27:02,311 [INFO] main — Bot detenido.
