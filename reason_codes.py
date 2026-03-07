@@ -12,22 +12,22 @@ USO:
 from __future__ import annotations
 from typing import Any
 
-# ── Constantes de duración reutilizables ──────────────────────────────────────
-STRATEGY_MAX_CONSECUTIVE_LOSSES: int   = 4       # pérdidas → cooldown de estrategia
-STRATEGY_COOLDOWN_HOURS:         int   = 12      # horas de cooldown por estrategia
+# ── Constantes de Kill-Switches ───────────────────────────────────────────────
+STRATEGY_MAX_CONSECUTIVE_LOSSES: int   = 4
+STRATEGY_COOLDOWN_HOURS:         int   = 12
 STRATEGY_COOLDOWN_SEC:           int   = STRATEGY_COOLDOWN_HOURS * 3600
 
-DAILY_DD_KILL_PCT:               float = -5.0    # % drawdown diario → kill-switch
-MAX_EXPOSURE_PCT:                float = 15.0    # % margen → bloqueo por exposición
+DAILY_DD_KILL_PCT:               float = -5.0
+MAX_EXPOSURE_PCT:                float = 15.0
 
-API_CB_MAX_ERRORS:               int   = 3       # errores consecutivos → circuit breaker
-API_CB_WINDOW_SEC:               int   = 5 * 60  # ventana de tiempo para contar errores
-API_CB_PAUSE_SEC:                int   = 15 * 60 # pausa tras activar circuit breaker
+API_CB_MAX_ERRORS:               int   = 3
+API_CB_WINDOW_SEC:               int   = 5 * 60
+API_CB_PAUSE_SEC:                int   = 15 * 60
 
-NEWS_FREEZE_PRE_MIN:             int   = 30      # minutos ANTES del evento macro
-NEWS_FREEZE_POST_MIN:            int   = 30      # minutos DESPUÉS del evento macro
+NEWS_FREEZE_PRE_MIN:             int   = 30
+NEWS_FREEZE_POST_MIN:            int   = 30
 
-# Mapeo entry_mode → strategy_type (para cooldown por estrategia)
+# Mapeo entry_mode → strategy_type (para cooldown y ATM)
 ENTRY_MODE_TO_STRATEGY: dict[str, str] = {
     "AGGRESSIVE": "FAST",
     "MOMENTUM":   "FAST",
@@ -35,6 +35,18 @@ ENTRY_MODE_TO_STRATEGY: dict[str, str] = {
     "SYNCED":     "NORMAL",
 }
 VALID_STRATEGY_TYPES: tuple[str, ...] = ("FAST", "NORMAL", "INSTITUTIONAL")
+
+# Mapeo strategy_type → timeframe base en minutos
+# FAST: scalping en 5m | NORMAL: swing en 15m | INSTITUTIONAL: posición en 4h
+STRATEGY_TIMEFRAME_MIN: dict[str, int] = {
+    "FAST":          5,
+    "NORMAL":        15,
+    "INSTITUTIONAL": 240,
+}
+
+# Umbral de movimiento de precio para emergencia ATM (% del precio de entrada)
+# La IA se despierta si el precio se mueve más que este % desde la última evaluación
+ATM_EMERGENCY_PRICE_MOVE_PCT: float = 1.5
 
 
 class _RC:
@@ -56,6 +68,7 @@ class _RC:
     TRADE_BLOCKED_SYMBOL_WR         = "TRADE_BLOCKED_SYMBOL_WR"
     TRADE_BLOCKED_QTY_INVALID       = "TRADE_BLOCKED_QTY_INVALID"
     TRADE_BLOCKED_BALANCE_LOW       = "TRADE_BLOCKED_BALANCE_LOW"
+    TRADE_BLOCKED_PROBLEMATIC_SYM   = "TRADE_BLOCKED_PROBLEMATIC_SYM"
 
     # ── CIERRES DE POSICIÓN ───────────────────────────────────────────────────
     TRADE_CLOSED_TP                 = "TRADE_CLOSED_TP"
@@ -76,12 +89,13 @@ class _RC:
     RISK_EXPOSURE_CHECKED           = "RISK_EXPOSURE_CHECKED"
     RISK_STATE_SAVED                = "RISK_STATE_SAVED"
     RISK_STATE_LOADED               = "RISK_STATE_LOADED"
+    RISK_POSITION_SYNC              = "RISK_POSITION_SYNC"
 
     # ── COOLDOWN POR ESTRATEGIA ───────────────────────────────────────────────
-    ENGINE_FAST_COOLDOWN_4_LOSSES        = "ENGINE_FAST_COOLDOWN_4_LOSSES"
-    ENGINE_NORMAL_COOLDOWN_4_LOSSES      = "ENGINE_NORMAL_COOLDOWN_4_LOSSES"
+    ENGINE_FAST_COOLDOWN_4_LOSSES          = "ENGINE_FAST_COOLDOWN_4_LOSSES"
+    ENGINE_NORMAL_COOLDOWN_4_LOSSES        = "ENGINE_NORMAL_COOLDOWN_4_LOSSES"
     ENGINE_INSTITUTIONAL_COOLDOWN_4_LOSSES = "ENGINE_INSTITUTIONAL_COOLDOWN_4_LOSSES"
-    ENGINE_STRATEGY_COOLDOWN_EXPIRED     = "ENGINE_STRATEGY_COOLDOWN_EXPIRED"
+    ENGINE_STRATEGY_COOLDOWN_EXPIRED       = "ENGINE_STRATEGY_COOLDOWN_EXPIRED"
 
     # ── API / EXCHANGE ────────────────────────────────────────────────────────
     API_CIRCUIT_BREAKER_ACTIVATED   = "API_CIRCUIT_BREAKER_ACTIVATED"
@@ -99,13 +113,40 @@ class _RC:
     NEWS_MACRO_EVENT_UPCOMING       = "NEWS_MACRO_EVENT_UPCOMING"
     NEWS_CRITICAL_ALERT             = "NEWS_CRITICAL_ALERT"
 
+    # ══════════════════════════════════════════════════════════════════════
+    #  ATM — Active Trade Management
+    # ══════════════════════════════════════════════════════════════════════
+
+    # Motivos de despertar: identifican POR QUÉ se activó la IA para
+    # evaluar una posición abierta. Se incluyen en el prompt del ATM.
+    #
+    # ATM_WAKEUP_BAR_CLOSE            — evaluación rutinaria al cierre de vela
+    # ATM_WAKEUP_EMERGENCY_VOLATILITY — spike de precio ≥ umbral desde última eval
+    # ATM_WAKEUP_EMERGENCY_NEWS       — nueva alerta crítica de noticias
+    ATM_WAKEUP_BAR_CLOSE            = "ATM_WAKEUP_BAR_CLOSE"
+    ATM_WAKEUP_EMERGENCY_VOLATILITY = "ATM_WAKEUP_EMERGENCY_VOLATILITY"
+    ATM_WAKEUP_EMERGENCY_NEWS       = "ATM_WAKEUP_EMERGENCY_NEWS"
+
+    # Acciones que la IA puede ordenar sobre una posición abierta
+    ATM_ACTION_HOLD                 = "ATM_ACTION_HOLD"
+    ATM_ACTION_MOVE_SL_BREAKEVEN    = "ATM_ACTION_MOVE_SL_BREAKEVEN"
+    ATM_ACTION_CLOSE                = "ATM_ACTION_CLOSE"
+    ATM_ACTION_TRAIL_STOP           = "ATM_ACTION_TRAIL_STOP"
+    ATM_ACTION_PARTIAL_CLOSE        = "ATM_ACTION_PARTIAL_CLOSE"
+
+    # Estado del ciclo ATM
+    ATM_AI_SKIPPED                  = "ATM_AI_SKIPPED"
+    ATM_EVAL_SCHEDULED              = "ATM_EVAL_SCHEDULED"
+    ATM_SL_VALIDATION_FAILED        = "ATM_SL_VALIDATION_FAILED"
+
     # ── SISTEMA ───────────────────────────────────────────────────────────────
     SYSTEM_BOT_STARTED              = "SYSTEM_BOT_STARTED"
     SYSTEM_BOT_STOPPED              = "SYSTEM_BOT_STOPPED"
     SYSTEM_PAUSED                   = "SYSTEM_PAUSED"
 
-    # ── Descripciones legibles (para Telegram) ────────────────────────────────
+    # ── Descripciones legibles ────────────────────────────────────────────────
     _DESC: dict[str, str] = {
+        # Kill-Switches
         "TRADE_BLOCKED_DAILY_DD":
             "🔒 Trade bloqueado: Daily Drawdown Kill-Switch activo",
         "TRADE_BLOCKED_NEWS_WINDOW":
@@ -136,6 +177,38 @@ class _RC:
             "❄️ News Freeze: 30 min DESPUÉS de evento macro HIGH_IMPACT",
         "NEWS_FREEZE_LIFTED":
             "✅ News Freeze levantado — ventana macro cerrada",
+        # ATM
+        "ATM_WAKEUP_BAR_CLOSE":
+            "⏰ ATM: Despertar rutinario — cierre de vela del timeframe base",
+        "ATM_WAKEUP_EMERGENCY_VOLATILITY":
+            "🚨 ATM: Emergencia — spike de precio anormal detectado",
+        "ATM_WAKEUP_EMERGENCY_NEWS":
+            "📰 ATM: Emergencia — alerta crítica de noticias detectada",
+        "ATM_ACTION_HOLD":
+            "✋ ATM: Mantener posición sin cambios",
+        "ATM_ACTION_MOVE_SL_BREAKEVEN":
+            "🛡 ATM: Stop-Loss movido a breakeven — riesgo eliminado",
+        "ATM_ACTION_CLOSE":
+            "🚪 ATM: Posición cerrada por decisión del Risk Manager IA",
+        "ATM_ACTION_TRAIL_STOP":
+            "📍 ATM: Trailing stop actualizado por IA",
+        "ATM_ACTION_PARTIAL_CLOSE":
+            "📊 ATM: Cierre parcial (50%) ejecutado — ganancias aseguradas",
+        "ATM_AI_SKIPPED":
+            "⏭ ATM: Sin condición de despertar — evaluación IA omitida",
+        "ATM_EVAL_SCHEDULED":
+            "🕐 ATM: Próxima evaluación IA programada",
+        "ATM_SL_VALIDATION_FAILED":
+            "⚠️ ATM: Validación del nuevo SL fallida — manteniendo SL actual",
+        # Misc
+        "RISK_POSITION_SYNC":
+            "📡 Sincronización de posiciones con el exchange",
+        "SYSTEM_BOT_STARTED":
+            "🤖 Bot iniciado y activo",
+        "SYSTEM_BOT_STOPPED":
+            "⛔ Bot detenido",
+        "SYSTEM_PAUSED":
+            "⏸ Bot en pausa — trading suspendido",
     }
 
     def desc(self, code: str) -> str:
@@ -152,8 +225,9 @@ class _RC:
         """Para Telegram: negrita + parámetros en lista."""
         body = f"<b>[{code}]</b>\n{self.desc(code)}"
         if kw:
-            body += "\n" + "\n".join(f"  • <code>{k}</code>: {v}"
-                                      for k, v in kw.items())
+            body += "\n" + "\n".join(
+                f"  • <code>{k}</code>: {v}" for k, v in kw.items()
+            )
         return body
 
 
