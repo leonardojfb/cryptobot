@@ -469,15 +469,73 @@ class BybitClient:
             body["reduceOnly"] = True
 
         log.debug(f"Order body: {body}")
-        resp = self._post("/v5/order/create", body)
+        resp    = self._post("/v5/order/create", body)
+        rc      = resp.get("retCode", -1)
+        err_msg = resp.get("retMsg", "")
 
-        # Log amigable del resultado
-        rc = resp.get("retCode", -1)
+        # ── AUTO-RETRY DINÁMICO: Risk Limit de Bybit (retCode 10001) ──────────
+        # Bybit reporta order_qty y max_qty escalados por ~1e8 internamente.
+        # Parseamos ambos valores del mensaje de error para derivar la escala
+        # real y recalcular la qty máxima permitida sin tocar ningún otro campo.
+        #
+        # Ejemplo de mensaje real:
+        #   "The number of contracts exceeds maximum limit allowed: too large,
+        #    order_qty:8739960000000 > max_qty:5213000000000"
+        # ─────────────────────────────────────────────────────────────────────
+        if rc == 10001 and "max_qty" in err_msg:
+            import re
+            match_max = re.search(r'max_qty:(\d+)', err_msg)
+            match_ord = re.search(r'order_qty:(\d+)', err_msg)
+
+            if match_max:
+                try:
+                    # Derivamos la escala interna de Bybit dinámicamente.
+                    # Si el mensaje incluye order_qty, calculamos la escala exacta
+                    # comparándola con la qty que acabamos de enviar (safe).
+                    # Fallback conservador: 1e8 (documentado en Bybit internals).
+                    scale = 1e8
+                    if match_ord and safe > 0:
+                        scale = float(match_ord.group(1)) / float(safe)
+
+                    real_max = float(match_max.group(1)) / scale
+
+                    # Reducimos un 0.5 % para no volver a pisar el límite
+                    # por errores de punto flotante o variaciones de precio.
+                    adjusted_max = real_max * 0.995
+
+                    log.warning(
+                        f"[{symbol}] Risk Limit excedido (10001). "
+                        f"Auto-ajustando qty: {safe} → ~{adjusted_max:.4f} "
+                        f"(scale={scale:.0f}, real_max={real_max:.4f})"
+                    )
+
+                    safe_retry, retry_err = self.safe_qty(symbol, adjusted_max)
+                    if safe_retry > 0:
+                        body["qty"] = str(safe_retry)
+                        log.debug(
+                            f"[{symbol}] Reintentando orden con qty={safe_retry}"
+                        )
+                        resp    = self._post("/v5/order/create", body)
+                        rc      = resp.get("retCode", -1)
+                        err_msg = resp.get("retMsg", "")
+                    else:
+                        log.error(
+                            f"[{symbol}] safe_qty rechazó adjusted_max={adjusted_max:.4f}: "
+                            f"{retry_err}"
+                        )
+                except Exception as _retry_exc:
+                    log.error(
+                        f"[{symbol}] Error parseando límite dinámico de Bybit: "
+                        f"{_retry_exc}"
+                    )
+        # ── FIN AUTO-RETRY ────────────────────────────────────────────────────
+
+        # Log amigable del resultado (usa rc/err_msg ya actualizados por retry)
         if rc == 0:
             oid = resp.get("result", {}).get("orderId", "?")
             log.info(f"✅ Orden {symbol} {side} {safe} → orderId={oid}")
         else:
-            log.error(f"❌ Orden {symbol} {side} {safe} → [{rc}] {resp.get('retMsg')}")
+            log.error(f"❌ Orden {symbol} {side} {safe} → [{rc}] {err_msg}")
 
         return resp
 

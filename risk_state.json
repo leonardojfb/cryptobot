@@ -1,9 +1,9 @@
 {
-  "daily_pnl": 284.7246,
-  "day_start_ts": 1772841600,
+  "daily_pnl": 0.0,
+  "day_start_ts": 1772928000,
   "dd_locked": false,
   "dd_unlock_ts": 0,
-  "consecutive_losses": 0,
+  "consecutive_losses": 1,
   "global_cb": false,
   "global_cb_until": 0.0,
   "strategy": {
@@ -12,13 +12,13 @@
       "cooldown_until": 0.0
     },
     "NORMAL": {
-      "consecutive_losses": 0,
-      "cooldown_until": 0.0
+      "consecutive_losses": 1,
+      "cooldown_until": 1772970436.8720682
     },
     "INSTITUTIONAL": {
       "consecutive_losses": 0,
       "cooldown_until": 0.0
     }
   },
-  "saved_at": 1772923460
+  "saved_at": 1772928082
 }
