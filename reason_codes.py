@@ -70,6 +70,16 @@ class _RC:
     TRADE_BLOCKED_BALANCE_LOW       = "TRADE_BLOCKED_BALANCE_LOW"
     TRADE_BLOCKED_PROBLEMATIC_SYM   = "TRADE_BLOCKED_PROBLEMATIC_SYM"
 
+    # ── FILTROS INSTITUCIONALES (Prop-Firm Architecture) ──────────────────────
+    # BLOCKED_BAD_REGIME       — régimen de mercado no operable (RANGE comprimir)
+    # BLOCKED_LOW_QUALITY      — trade_quality_score insuficiente para la firma
+    # REDUCED_SIZE_HIGH_RISK   — tamaño reducido automáticamente por riesgo elevado
+    # EXIT_FAILURE_TO_FOLLOW   — precio no siguió la dirección del setup → salida
+    BLOCKED_BAD_REGIME          = "BLOCKED_BAD_REGIME"
+    BLOCKED_LOW_QUALITY         = "BLOCKED_LOW_QUALITY"
+    REDUCED_SIZE_HIGH_RISK      = "REDUCED_SIZE_HIGH_RISK"
+    EXIT_FAILURE_TO_FOLLOW      = "EXIT_FAILURE_TO_FOLLOW"
+
     # ── CIERRES DE POSICIÓN ───────────────────────────────────────────────────
     TRADE_CLOSED_TP                 = "TRADE_CLOSED_TP"
     TRADE_CLOSED_SL                 = "TRADE_CLOSED_SL"
@@ -209,6 +219,15 @@ class _RC:
             "⛔ Bot detenido",
         "SYSTEM_PAUSED":
             "⏸ Bot en pausa — trading suspendido",
+        # ── Filtros institucionales (Prop-Firm) ───────────────────────────────
+        "BLOCKED_BAD_REGIME":
+            "🚫 Trade bloqueado: régimen de mercado no operable — rango sin dirección institucional",
+        "BLOCKED_LOW_QUALITY":
+            "🚫 Trade bloqueado: calidad de setup insuficiente (trade_quality_score < umbral)",
+        "REDUCED_SIZE_HIGH_RISK":
+            "⚠️ Tamaño reducido automáticamente: riesgo elevado detectado por el nodo de calidad",
+        "EXIT_FAILURE_TO_FOLLOW":
+            "🚪 Salida preventiva: precio no siguió la dirección del setup (failure to follow through)",
     }
 
     def desc(self, code: str) -> str:

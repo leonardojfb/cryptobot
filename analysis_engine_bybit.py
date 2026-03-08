@@ -1,7 +1,7 @@
 """
-analysis_engine_bybit.py  v4  — Motor SMC (Smart Money Concepts)
-═══════════════════════════════════════════════════════════════════
-Filosofía: Seguir a las instituciones, no al retail.
+analysis_engine_bybit.py  v5  — Motor SMC (Smart Money Concepts) + Arquitectura de Nodos
+══════════════════════════════════════════════════════════════════════════════════════════
+Filosofía: Seguir a las instituciones, no al retail. Código modular tipo Prop-Firm.
 
 CONCEPTOS SMC IMPLEMENTADOS:
   1. ORDER BLOCKS          — Última vela bajista antes de impulso alcista (y viceversa)
@@ -14,6 +14,12 @@ CONCEPTOS SMC IMPLEMENTADOS:
   8. INDUCEMENT             — Barrido de liquidez antes del verdadero movimiento
 
 EMAs INSTITUCIONALES: 7, 25, 99 (vs retail 7/21/50/200)
+
+ARQUITECTURA DE NODOS (v5):
+  _detect_regime(df)             → str   — estado del mercado: TREND_UP | TREND_DOWN | RANGE | EXPANSION
+  _calculate_trade_quality(data) → float — score 0-100 de limpieza del setup
+  analyze_symbol(...)            → Dict  — orquesta todos los nodos; emite direction_score,
+                                           trade_quality_score, regime, setup_family
 
 SCORING SMC (-10 a +10):
   - Order Block hit:        ±3.0
@@ -770,7 +776,168 @@ def _keltner_local(df: pd.DataFrame, p=20, mult=1.5):
     return mid + mult * a, mid, mid - mult * a
 
 
-# _keltner_local is defined above and called directly within score_tf
+# ══════════════════════════════════════════════════════════
+#  NODO 1: DETECTOR DE RÉGIMEN
+# ══════════════════════════════════════════════════════════
+
+def _detect_regime(df: pd.DataFrame) -> str:
+    """
+    Nodo independiente: clasifica el régimen de mercado actual.
+
+    Utiliza las EMAs institucionales 25 y 99 como referencia de tendencia
+    estructural, y la relación entre el rango de Bollinger y el canal de
+    Keltner para detectar si el mercado está en expansión o compresión.
+
+    Retorna uno de:
+      "TREND_UP"   — EMA25 > EMA99, precio sobre ambas, estructura alcista
+      "TREND_DOWN" — EMA25 < EMA99, precio bajo ambas, estructura bajista
+      "EXPANSION"  — squeeze Bollinger/Keltner liberado con volumen
+      "RANGE"      — ninguna tendencia clara, mercado en rango/compresión
+
+    Parámetros:
+      df: DataFrame con columnas OHLCV de al menos 120 velas (1h o 4h ideal).
+
+    Uso en bot_autonomous:
+      regime = _detect_regime(df_4h)
+      if regime == "RANGE":
+          block_reason = RC.fmt(RC.BLOCKED_BAD_REGIME, regime=regime)
+    """
+    if len(df) < 120:
+        return "RANGE"   # datos insuficientes → conservador
+
+    price = float(df["close"].iloc[-1])
+    c     = df["close"]
+
+    e25 = float(_ema(c, 25).iloc[-1])
+    e99 = float(_ema(c, 99).iloc[-1]) if len(df) >= 99 else e25
+
+    # ── Alineación EMA: indica tendencia estructural ─────────────────────────
+    trend_up   = (price > e25 > e99)
+    trend_down = (price < e25 < e99)
+
+    # ── Compresión Bollinger vs Keltner ──────────────────────────────────────
+    # Cuando las bandas de Bollinger están DENTRO del canal de Keltner
+    # el mercado está comprimido (squeeze). Cuando explotan hacia afuera
+    # hay expansión de volatilidad — oportunidad de ruptura.
+    bu, _, bl = _bollinger(c)          # Bollinger (20, 2)
+    ku, _, kl = _keltner_local(df)     # Keltner   (20, 1.5 ATR)
+
+    boll_upper  = float(bu.iloc[-1])
+    boll_lower  = float(bl.iloc[-1])
+    kelt_upper  = float(ku.iloc[-1])
+    kelt_lower  = float(kl.iloc[-1])
+
+    # Squeeze activo: ambas bandas Bollinger dentro del canal Keltner
+    in_squeeze  = (boll_upper < kelt_upper) and (boll_lower > kelt_lower)
+
+    # Expansión reciente: squeeze liberado en las últimas 5 velas + volumen
+    prev_squeeze_count = 0
+    lookback_sq = min(6, len(df))
+    for i in range(2, lookback_sq):
+        bu_i = float(bu.iloc[-i])
+        bl_i = float(bl.iloc[-i])
+        ku_i = float(ku.iloc[-i])
+        kl_i = float(kl.iloc[-i])
+        if (bu_i < ku_i) and (bl_i > kl_i):
+            prev_squeeze_count += 1
+
+    squeeze_just_released = (not in_squeeze) and (prev_squeeze_count >= 3)
+    _, vol_ratio = _volume_spike(df)
+    expansion = squeeze_just_released and (vol_ratio >= 1.8)
+
+    # ── Clasificación final ──────────────────────────────────────────────────
+    if expansion:
+        return "EXPANSION"
+    if trend_up:
+        return "TREND_UP"
+    if trend_down:
+        return "TREND_DOWN"
+    return "RANGE"
+
+
+# ══════════════════════════════════════════════════════════
+#  NODO 2: CALIDAD DEL TRADE
+# ══════════════════════════════════════════════════════════
+
+def _calculate_trade_quality(setup_data: Dict) -> float:
+    """
+    Nodo independiente: evalúa la "limpieza" del setup antes de operar.
+
+    Devuelve un score de 0 a 100. Valores >= 55 se consideran operables.
+    La Prop-Firm puede parametrizar el umbral mínimo desde el exterior.
+
+    Criterios y pesos:
+      ┌──────────────────────────────────────────┬───────┐
+      │ Criterio                                 │ Peso  │
+      ├──────────────────────────────────────────┼───────┤
+      │ Precio cerca del VWAP (< 1.5% de dist)  │  25 % │
+      │ SL razonable (< 3% del precio entrada)  │  30 % │
+      │ Volumen presente (ratio >= 0.8 del avg) │  20 % │
+      │ Confianza SMC multi-TF (0–1 → 0–25)     │  25 % │
+      └──────────────────────────────────────────┴───────┘
+
+    Args:
+      setup_data: Dict con claves que produce analyze_symbol:
+        - "vwap_dist_pct"   float   distancia % del precio al VWAP
+        - "atr"             float   ATR en términos de precio
+        - "mark_price"      float   precio actual de mercado
+        - "vol_ratio"       float   ratio volumen actual / media 20 velas
+        - "confidence"      float   confianza compuesta del análisis SMC
+
+    Returns:
+      float en [0.0, 100.0] redondeado a 1 decimal.
+    """
+    score = 0.0
+
+    # ── 1. Cercanía al VWAP (25 pts) ─────────────────────────────────────────
+    # El VWAP es el precio institucional "justo". Entradas lejos del VWAP
+    # tienen peor R:R porque el precio tiende a revertar hacia él.
+    vwap_dist = abs(setup_data.get("vwap_dist_pct") or 0.0)
+    if vwap_dist <= 0.3:
+        score += 25.0                      # prácticamente en el VWAP → ideal
+    elif vwap_dist <= 0.8:
+        score += 20.0                      # muy cerca
+    elif vwap_dist <= 1.5:
+        score += 12.0                      # aceptable
+    elif vwap_dist <= 3.0:
+        score += 5.0                       # alejado, penalización fuerte
+    # > 3%: 0 pts → setup sucio
+
+    # ── 2. Tamaño del Stop Loss razonable (30 pts) ────────────────────────────
+    # Un SL = 1.5 × ATR. Si ese SL representa > 3% del precio de entrada
+    # el trade tiene un riesgo desproporcionado para la firma.
+    atr_v   = setup_data.get("atr") or 0.0
+    price   = setup_data.get("mark_price") or 1.0
+    sl_pct  = (1.5 * atr_v / price * 100) if (atr_v > 0 and price > 0) else 999.0
+    if sl_pct <= 0.5:
+        score += 30.0                      # SL ajustado: máxima puntuación
+    elif sl_pct <= 1.0:
+        score += 25.0
+    elif sl_pct <= 1.8:
+        score += 18.0
+    elif sl_pct <= 3.0:
+        score += 8.0
+    # > 3%: 0 pts → SL demasiado amplio, posición debería reducirse
+
+    # ── 3. Volumen (20 pts) ───────────────────────────────────────────────────
+    # Trades en volumen bajo tienen spreads peores y más slippage.
+    vol_ratio = setup_data.get("vol_ratio") or 0.0
+    if vol_ratio >= 2.5:
+        score += 20.0                      # spike de volumen = confirmación
+    elif vol_ratio >= 1.5:
+        score += 16.0
+    elif vol_ratio >= 0.8:
+        score += 10.0                      # volumen normal
+    elif vol_ratio >= 0.4:
+        score += 4.0                       # volumen bajo
+    # < 0.4: 0 pts → mercado sin participación
+
+    # ── 4. Confianza SMC compuesta (25 pts) ──────────────────────────────────
+    # El campo "confidence" de analyze_symbol ya pondera sweep, OB, FVG, etc.
+    conf = float(setup_data.get("confidence") or 0.0)
+    score += conf * 25.0                   # 0.0 → 0 pts, 1.0 → 25 pts
+
+    return round(min(100.0, max(0.0, score)), 1)
 
 
 # ══════════════════════════════════════════════════════════
@@ -781,11 +948,27 @@ def analyze_symbol(client, symbol: str,
                    timeframes: List[str] = None,
                    fast_mode: bool = False) -> Dict[str, Any]:
     """
-    Motor de análisis SMC Multi-Timeframe.
-    Detecta automáticamente el setup óptimo:
-      - AGGRESSIVE: sweep + OB frescos → entrada inmediata
-      - MOMENTUM:   BoS confirmado + volumen → trend riding
-      - STANDARD:   confluencia SMC multi-TF
+    Motor de análisis SMC Multi-Timeframe — Orquestador de Nodos (v5).
+
+    Flujo de ejecución:
+      1. Recolecta klines por timeframe y calcula score_tf() en cada uno.
+      2. Calcula direction_score (composite ponderado SMC).
+      3. Detecta el régimen de mercado con _detect_regime() sobre 1h o 4h.
+      4. Evalúa la calidad del setup con _calculate_trade_quality().
+      5. Emite la señal final filtrando por umbral según entry_mode.
+
+    Modos de entrada (entry_mode):
+      AGGRESSIVE — sweep + OB frescos → umbral 2.5
+      MOMENTUM   — BoS + volumen + FVG/VWAP → umbral 3.0
+      STANDARD   — confluencia SMC multi-TF  → umbral 4.0
+
+    Nuevos campos en el resultado (arquitectura Prop-Firm):
+      regime              str    — estado del mercado del nodo _detect_regime
+      direction_score     float  — composite SMC crudo (alias de composite_score)
+      trade_quality_score float  — calidad del setup 0-100 del nodo _calculate_trade_quality
+      setup_family        str    — familia de setup (por defecto "SMC_STANDARD")
+
+    El campo composite_score se mantiene por compatibilidad con el resto del sistema.
     """
     if fast_mode:
         timeframes = ["15", "60", "240"]
@@ -806,6 +989,9 @@ def analyze_symbol(client, symbol: str,
     any_vwap_retest   = False
     entry_mode        = MODE_STANDARD
 
+    # df_regime: guardamos el df de 1h o 4h para _detect_regime
+    df_regime: Optional[pd.DataFrame] = None
+
     for tf in timeframes:
         cfg   = TF_CONFIG.get(tf, {"label": tf, "category": "mid", "weight": 0.1, "min_bars": 60})
         label = cfg["label"]
@@ -825,6 +1011,12 @@ def analyze_symbol(client, symbol: str,
         if det.get("in_bullish_ob") or det.get("in_bearish_ob"): any_ob_hit = True
         if det.get("in_bull_fvg") or det.get("in_bear_fvg"):     any_fvg_fill = True
         if det.get("vwap_retest_bull") or det.get("vwap_retest_bear"): any_vwap_retest = True
+
+        # Priorizar 4h para régimen; fallback a 1h
+        if tf == "240":
+            df_regime = df
+        elif tf == "60" and df_regime is None:
+            df_regime = df
 
         if tf in ("60", "240") and det.get("atr"):
             primary_atr = det["atr"]
@@ -853,9 +1045,12 @@ def analyze_symbol(client, symbol: str,
     entry_bias, entry_avg = _bias(ENTRY_TF)
 
     # ── Orderbook imbalance ─────────────────────────────────
-    ob_score = _ob_imbalance(ob_raw)
+    ob_score  = _ob_imbalance(ob_raw)
     composite = composite * 0.90 + ob_score * 0.10
     composite = max(-10.0, min(10.0, composite))
+
+    # ── NODO 1: Régimen de mercado ──────────────────────────
+    regime: str = _detect_regime(df_regime) if df_regime is not None else "RANGE"
 
     # ── DETERMINAR MODO DE ENTRADA ─────────────────────────
     # SMC AGGRESSIVE: sweep + ob_hit (setup institucional clásico)
@@ -904,9 +1099,39 @@ def analyze_symbol(client, symbol: str,
     smc_summary = _build_smc_summary(tf_details, composite, any_sweep, any_ob_hit,
                                       any_fvg_fill, any_vwap_retest)
 
+    # ── NODO 2: Calidad del trade ───────────────────────────
+    # Construimos el setup_data con los campos que el nodo necesita.
+    # vwap_dist_pct: tomamos del detail del TF de 1h si existe, sino 4h.
+    _vwap_dist = 0.0
+    for _lbl in ("1h", "4h", "30m"):
+        _d = tf_details.get(_lbl, {})
+        if _d.get("vwap_dist_pct") is not None:
+            _vwap_dist = float(_d["vwap_dist_pct"])
+            break
+
+    _vol_ratio = 0.0
+    for _lbl in ("1h", "30m", "4h"):
+        _d = tf_details.get(_lbl, {})
+        if _d.get("vol_ratio"):
+            _vol_ratio = float(_d["vol_ratio"])
+            break
+
+    quality_input: Dict[str, Any] = {
+        "vwap_dist_pct": _vwap_dist,
+        "atr":           primary_atr or 0.0,
+        "mark_price":    mark_price,
+        "vol_ratio":     _vol_ratio,
+        "confidence":    round(confidence, 4),
+    }
+    quality_score: float = _calculate_trade_quality(quality_input)
+
+    # direction_score = composite ponderado (alias explícito para el sistema Prop-Firm)
+    direction_score: float = round(composite, 3)
+
     return {
+        # ── Compatibilidad con el sistema existente ────────────────────────────
         "symbol":          symbol,
-        "composite_score": round(composite, 3),
+        "composite_score": round(composite, 3),   # backward-compat alias
         "signal":          signal,
         "confidence":      round(confidence, 3),
         "aligned":         aligned,
@@ -925,13 +1150,18 @@ def analyze_symbol(client, symbol: str,
         "ob_score":        round(ob_score, 3),
         "squeeze":         any_squeeze,
         "vol_spike":       any_vol_spike,
-        # ── SMC raw data ─────────────────────────────────────────────────────
+        # ── SMC raw data ───────────────────────────────────────────────────────
         "smc_sweep":       any_sweep,
         "smc_ob_hit":      any_ob_hit,
         "smc_fvg_fill":    any_fvg_fill,
         "smc_vwap_retest": any_vwap_retest,
         "smc_summary":     smc_summary,
-        # ─────────────────────────────────────────────────────────────────────
+        # ── Arquitectura Prop-Firm (v5) ────────────────────────────────────────
+        "regime":              regime,             # nodo _detect_regime
+        "direction_score":     direction_score,    # score direccional SMC [-10, +10]
+        "trade_quality_score": quality_score,      # calidad del setup [0, 100]
+        "setup_family":        "SMC_STANDARD",     # extensible a SMC_SWEEP, SMC_OB…
+        # ──────────────────────────────────────────────────────────────────────
         "tf_details":      tf_details,
         "ts":              int(time.time()),
     }
@@ -1065,6 +1295,12 @@ def _empty_result(symbol: str, price: float) -> Dict:
         "ob_score": 0.0, "squeeze": False, "vol_spike": False,
         "smc_sweep": False, "smc_ob_hit": False, "smc_fvg_fill": False,
         "smc_vwap_retest": False, "smc_summary": {},
+        # ── Arquitectura Prop-Firm (v5) ────────────────────────────────────────
+        "regime":              "RANGE",
+        "direction_score":     0.0,
+        "trade_quality_score": 0.0,
+        "setup_family":        "SMC_STANDARD",
+        # ──────────────────────────────────────────────────────────────────────
         "tf_details": {}, "ts": int(time.time()),
     }
 
