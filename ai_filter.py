@@ -77,53 +77,72 @@ VALID_ATM_ACTIONS = frozenset([
 ])
 
 # ── System Prompt de ENTRADA (trades nuevos) ──────────────────────────────────
-SYSTEM_PROMPT = """Eres el Lead Institutional Quant & Risk Manager de un hedge fund de criptomonedas.
-Recibes señales de un bot algorítmico con análisis SMC (Smart Money Concepts), datos de order flow,
-noticias en tiempo real y tu historial de decisiones anteriores.
+SYSTEM_PROMPT = """Eres el Árbitro de Riesgo Institucional de un hedge fund de criptomonedas.
+Tu función NO es entusiasmarte con los trades. Es exactamente la opuesta: encontrar razones
+para NO operar, y cuando sí operas, calibrar el tamaño de riesgo con precisión quirúrgica.
 
-TU RESPONSABILIDAD:
-1. Analizar los datos crudos SMC para determinar si el setup es institucional válido
-2. Evaluar el impacto de las noticias en el riesgo del trade
-3. Aprobar o rechazar el trade
-4. Asignar dinámicamente el apalancamiento óptimo según la calidad del setup y el riesgo
+════════════════════════════════════════════════════════
+INPUTS QUE RECIBES (arquitectura v5 Prop-Firm)
+════════════════════════════════════════════════════════
+• regime         — estado del mercado: TREND_UP | TREND_DOWN | RANGE | EXPANSION
+• direction_score — puntuación direccional SMC [-10, +10]. Solo contexto cuantitativo.
+• trade_quality_score — limpieza del setup [0-100]: VWAP proximity, SL size, volume, confidence.
+  Umbrales internos: <40 = basura | 40-60 = aceptable | 60-80 = bueno | >80 = premium
 
-CONCEPTOS SMC QUE DEBES ENTENDER:
-- Order Block (OB): zona de oferta/demanda institucional. Precio en OB fresco = alta probabilidad
-- Fair Value Gap (FVG): imbalance no rellenado. Precio en FVG = instituciones rellenan
-- Liquidity Sweep: stop hunt antes del movimiento real. Sweep fresco + OB = setup premium
-- VWAP Retest: precio justo institucional. Rebote en VWAP = entry preciso
-- BoS (Break of Structure): confirmación de continuación. ChoCH: posible reversión
+CONCEPTOS SMC DE REFERENCIA:
+- Order Block (OB): demanda/oferta institucional. OB fresco en TREND = valid entry.
+- Fair Value Gap (FVG): imbalance. El precio tiende a rellenarlos antes de continuar.
+- Liquidity Sweep: stop-hunt institucional. Sweep + OB en TREND = setup premium.
+- VWAP Retest: precio justo institucional. Retest desde arriba/abajo = entry de alta precisión.
+- BoS/ChoCH: confirmación/reversión de estructura. ChoCH en RANGE = posible EXPANSION inminente.
 
-REGLAS DE APALANCAMIENTO DINÁMICO:
-Alta calidad (APPROVE con leverage alto 20x-50x):
-  - Sweep + OB frescos + VWAP retest + noticias neutrales/positivas + score > 5.0
-  - Alineación macro completa + ChoCH/BoS confirmado + FVG fill
-  
-Media calidad (APPROVE con leverage moderado 10x-20x):
-  - 2-3 setups SMC coincidentes + noticias neutras
-  - Score 3.5-5.0 con alineación parcial
-  
-Baja calidad / Mayor incertidumbre (APPROVE con leverage bajo 3x-10x):
-  - Solo 1 setup SMC + noticias contradictorias o inciertas
-  - Score 2.5-3.5 en modo AGGRESSIVE/MOMENTUM
-  - Mercado de alta volatilidad (ATR muy elevado vs precio)
-  - Fear & Greed extremo (< 20 o > 85)
+════════════════════════════════════════════════════════
+TU PROCESO DE DECISIÓN (en este orden)
+════════════════════════════════════════════════════════
 
+PASO 1 — Evalúa el RISK STATE implícito:
+  Combina el régimen + volatilidad (ATR%) + noticias para clasificar el entorno:
+  • RISK_OFF   : RANGE + ATR alto + noticias negativas  → apalancamiento mínimo o rechazo
+  • RISK_ON    : TREND + ATR normal + noticias neutras  → apalancamiento pleno
+  • RISK_MIXED : EXPANSION o señales contradictorias     → apalancamiento conservador
+
+PASO 2 — Valida la calidad del setup (trade_quality_score):
+  • < 40  : RECHAZAR. El sistema ya bloquea esto, pero si llega, rechaza.
+  • 40-59 : APPROVE solo si regime es TREND y direction_score > 4.0. Leverage bajo.
+  • 60-79 : APPROVE con leverage moderado. Exige al menos 2 setups SMC coincidentes.
+  • ≥ 80  : APPROVE con leverage alto. El setup es limpio.
+
+PASO 3 — Calibra el apalancamiento según RISK STATE + calidad:
+  RISK_ON + quality≥80 + score>5:   20x–50x
+  RISK_ON + quality 60-79:          12x–25x
+  RISK_MIXED o quality 40-59:       5x–12x
+  RISK_OFF cualquier calidad:        máximo 5x, preferir rechazo
+
+PASO 4 — Contexto macro (Fear & Greed como INPUT, no como bloqueador):
+  El F&G es información adicional para calibrar el Risk State, no un veto autónomo.
+  F&G extremo (<15 o >90) puede elevar el Risk State de RISK_ON a RISK_MIXED,
+  pero no bloquea por sí solo un setup de alta calidad en TREND confirmado.
+
+════════════════════════════════════════════════════════
 RECHAZAR si:
-  - Macro opuesta a la señal
-  - Noticia crítica negativa reciente (HIGH_NEGATIVE) + trade en esa dirección
-  - Sin ningún setup SMC confirmado en TFs relevantes
-  - Historial del par WR < 25% en últimos 10+ trades
-  - Tus rechazos anteriores en condiciones similares resultaron correctos
+════════════════════════════════════════════════════════
+  • regime == RANGE y no hay setup de reversión confirmado (ChoCH + sweep)
+  • Macro opuesta a la señal con estructura confirmada en contra
+  • trade_quality_score < 40 (SL absurdo o mercado sin volumen)
+  • Noticia HIGH_NEGATIVE + trade en esa dirección exacta + RISK_OFF
+  • Historial del par WR < 25% en ≥10 trades cerrados
+  • Tus rechazos anteriores en condiciones similares resultaron correctos
 
-REGLAS ESTRICTAS:
+════════════════════════════════════════════════════════
+REGLAS DE OUTPUT
+════════════════════════════════════════════════════════
 1. Responde SOLO con un objeto JSON válido, sin markdown, sin texto adicional.
 2. Estructura EXACTA — no puedes omitir ningún campo:
    {"smc_analysis": "...", "news_impact": "...", "approve": true/false, "confidence": 0.0-1.0, "recommended_leverage": int, "reasoning": "max 200 chars"}
-3. "recommended_leverage": entero entre 10 y 100. Nunca uses menos de 10x (incluso en Extreme Fear).
-4. "smc_analysis": describe el setup SMC en máximo 100 chars.
+3. "recommended_leverage": entero entre 1 y 100.
+4. "smc_analysis": describe el setup SMC + régimen en máximo 100 chars.
 5. "news_impact": exactamente uno de: HIGH_POSITIVE, MODERATE_POSITIVE, NEUTRAL, MODERATE_NEGATIVE, HIGH_NEGATIVE
-6. "confidence": tu certeza en la decisión (< 0.50 = muy inseguro → reduce leverage).
+6. "confidence": tu certeza en la decisión. < 0.50 = incertidumbre alta → leverage defensivo.
 7. Aprende del historial: si rechazaste y el mercado te dio la razón, refuerza ese criterio."""
 
 
@@ -581,18 +600,44 @@ Responde SOLO con JSON: {{"action":"...","confidence":0.0-1.0,"new_sl":null,"rea
                       recent_news: List[Dict], symbol_history: List[Dict]) -> str:
         sym   = analysis.get("symbol", "")
         sig   = analysis.get("signal", "")
-        score = analysis.get("composite_score", 0)
-        conf  = analysis.get("confidence", 0)
-        mode  = analysis.get("entry_mode", "STANDARD")
         mark  = analysis.get("mark_price", 0)
         atr   = analysis.get("atr") or 0
         tp    = analysis.get("tp")
         sl    = analysis.get("sl")
+        conf  = analysis.get("confidence", 0)
+        mode  = analysis.get("entry_mode", "STANDARD")
+
+        # ── Campos arquitectura v5 Prop-Firm ──────────────────────────────────
+        regime        = analysis.get("regime", "UNKNOWN")
+        dir_score     = analysis.get("direction_score",
+                            analysis.get("composite_score", 0))   # backward-compat
+        quality_score = float(analysis.get("trade_quality_score") or 0.0)
+        setup_family  = analysis.get("setup_family", "SMC_STANDARD")
+
+        quality_label = (
+            "PREMIUM ✅ (≥80)"        if quality_score >= 80 else
+            "BUENO ✅ (60-79)"         if quality_score >= 60 else
+            "ACEPTABLE ⚠️ (40-59)"    if quality_score >= 40 else
+            "BASURA ❌ (<40)"
+        )
+        regime_emoji = {
+            "TREND_UP":  "📈", "TREND_DOWN": "📉",
+            "RANGE":     "↔️", "EXPANSION":  "💥",
+        }.get(regime, "❓")
 
         atr_pct   = (atr / mark * 100) if (mark and atr) else 0
         vol_label = ("EXTREMA" if atr_pct > 5 else
                      "ALTA"    if atr_pct > 2 else
                      "NORMAL"  if atr_pct > 0.5 else "BAJA")
+
+        # Risk State implícito — orientación para la IA, no veto duro
+        _risk_state = "RISK_ON"
+        if regime == "RANGE":
+            _risk_state = "RISK_OFF"
+        elif regime == "EXPANSION" or atr_pct > 3.5:
+            _risk_state = "RISK_MIXED"
+        elif news_bias.get("should_block") or news_bias.get("recent_alerts", 0) >= 2:
+            _risk_state = "RISK_MIXED"
 
         rr_str = "N/A"
         if tp and sl and mark and abs(mark - sl) > 0:
@@ -604,13 +649,6 @@ Responde SOLO con JSON: {{"action":"...","confidence":0.0-1.0,"new_sl":null,"rea
         smc_fvg   = analysis.get("smc_fvg_fill", False)
         smc_vwap  = analysis.get("smc_vwap_retest", False)
         setups_n  = smc_sum.get("setups_count", 0)
-
-        setup_quality = (
-            "PREMIUM ⭐⭐⭐" if (smc_sweep and smc_ob and setups_n >= 3) else
-            "BUENO ⭐⭐"     if setups_n >= 2 else
-            "BÁSICO ⭐"      if setups_n >= 1 else
-            "SIN SETUP SMC ❌"
-        )
 
         tf_evidence_str = "Sin evidencia SMC por TF."
         tf_ev = smc_sum.get("tf_evidence", {})
@@ -677,18 +715,23 @@ Responde SOLO con JSON: {{"action":"...","confidence":0.0-1.0,"new_sl":null,"rea
         fg_lbl  = news_bias.get("fg_label", "Neutral")
 
         base_lev_hint = self._calc_base_leverage_hint(
-            setups_n, score, atr_pct, fg_val, news_bias
+            setups_n, dir_score, quality_score, atr_pct, fg_val, news_bias
         )
 
-        return f"""=== SEÑAL SMC A REVISAR ===
-Par: {sym} | Dirección: {sig} | Modo: {mode}
-Score compuesto: {score:+.2f} | Confianza técnica: {conf:.0%} | R:R: {rr_str}
-Precio: {mark} | ATR: {atr:.4f} ({atr_pct:.2f}% del precio) | Volatilidad: {vol_label}
+        return f"""=== SEÑAL A ARBITRAR — {sym} ===
+Dirección: {sig} | Modo: {mode} | Setup family: {setup_family}
+Precio: {mark} | ATR: {atr:.4f} ({atr_pct:.2f}%) | Volatilidad: {vol_label}
+R:R estimado: {rr_str} | Confianza técnica: {conf:.0%}
 Alineación: {"COMPLETA ✅" if analysis.get("aligned") else "PARCIAL ⚠️"}
+
+═══ INPUTS PROP-FIRM (arquitectura v5) ═══════════════════
+Régimen de mercado:      {regime_emoji} {regime}
+Direction Score (SMC):   {dir_score:+.2f}  (rango -10 a +10)
+Trade Quality Score:     {quality_score:.1f}/100 — {quality_label}
+Risk State implícito:    {_risk_state}  (tu punto de partida)
 Macro: {analysis.get("macro_bias","?")} | Mid: {analysis.get("mid_bias","?")} | Entry: {analysis.get("entry_bias","?")}
 
-=== ANÁLISIS SMC (datos crudos) ===
-Calidad del setup: {setup_quality}
+═══ SETUPS SMC DETECTADOS ═══════════════════════════════
 • Liquidity Sweep: {"✅ DETECTADO" if smc_sweep else "❌"}
 • Order Block Hit: {"✅ DETECTADO" if smc_ob else "❌"}
 • FVG Fill:        {"✅ DETECTADO" if smc_fvg else "❌"}
@@ -700,52 +743,64 @@ Evidencia por timeframe:
 Scores por TF:
 {chr(10).join(tf_lines) if tf_lines else "  No disponible"}
 
-=== NOTICIAS Y MACRO ===
+═══ NOTICIAS Y MACRO ════════════════════════════════════
 Sentimiento {sym}: {n_dir} (score={n_score:+.2f}) | Alertas críticas 2h: {alerts}
-Fear & Greed: {fg_val}/100 — {fg_lbl}
-{"⛔ BLOQUEO ACTIVO: noticia muy negativa" if block else ""}
+Fear & Greed: {fg_val}/100 — {fg_lbl}  [contexto macro, no bloqueador absoluto]
+{"⛔ ALERTA: noticias muy negativas activas" if block else ""}
 
 Noticias recientes:
 {news_section}
 
-=== HISTORIAL DEL PAR ===
+═══ HISTORIAL ═══════════════════════════════════════════
 {hist_str}
 
-=== TUS DECISIONES ANTERIORES EN {sym} ===
+Tus decisiones anteriores en {sym}:
 {ai_hist}
 
-=== GUÍA DE APALANCAMIENTO ===
-Setup PREMIUM (Sweep+OB+VWAP, score>5, noticias neutras): 20x-50x
-Setup BUENO (2+ setups SMC, score 3.5-5): 10x-20x
-Setup BÁSICO o incierto: 3x-10x
-Alta volatilidad (ATR={atr:.4f} = {atr_pct:.1f}%): reducir leverage
-F&G extremo (<20 LONG o >85 SHORT): apalancamiento defensivo de 10x-15x
+═══ REFERENCIA DE APALANCAMIENTO ════════════════════════
+RISK_ON  + quality≥80 + dir_score>5:  20x–50x
+RISK_ON  + quality 60-79:             12x–25x
+RISK_MIXED o quality 40-59:            5x–12x
+RISK_OFF cualquier calidad:            ≤5x o RECHAZAR
+Alta volatilidad (ATR={atr_pct:.1f}%): reducir siempre
 Sugerencia base del sistema: ~{base_lev_hint}x
 
-Analiza TODO y decide. Responde SOLO con el JSON exacto."""
+Sigue tu proceso (Risk State → calidad → F&G como contexto → historial).
+Responde SOLO con el JSON exacto."""
 
-    def _calc_base_leverage_hint(self, setups_n: int, score: float,
-                                  atr_pct: float, fg: int,
-                                  news_bias: Dict) -> int:
-        lev = 10
-        if setups_n >= 3:   lev = 30
-        elif setups_n == 2: lev = 20
-        elif setups_n == 1: lev = 12
-        else:               lev = 5
+    def _calc_base_leverage_hint(self, setups_n: int, dir_score: float,
+                                  quality_score: float, atr_pct: float,
+                                  fg: int, news_bias: Dict) -> int:
+        """
+        Calcula la sugerencia de apalancamiento base para orientar a la IA.
 
-        if abs(score) > 6:   lev = int(lev * 1.5)
-        elif abs(score) > 4: lev = int(lev * 1.2)
-        elif abs(score) < 3: lev = int(lev * 0.6)
+        Ahora usa trade_quality_score como eje principal en lugar de setups_n puro.
+        El Fear & Greed ya no aplica caps duros: solo ajusta un factor multiplicador.
+        """
+        # ── Base por calidad del setup ─────────────────────────────────────────
+        if   quality_score >= 80: lev = 30
+        elif quality_score >= 60: lev = 18
+        elif quality_score >= 40: lev = 8
+        else:                     lev = 3
 
-        if atr_pct > 5:   lev = int(lev * 0.4)
-        elif atr_pct > 2: lev = int(lev * 0.65)
-        elif atr_pct > 1: lev = int(lev * 0.85)
+        # ── Boost por fuerza direccional ──────────────────────────────────────
+        if   abs(dir_score) > 6:   lev = int(lev * 1.5)
+        elif abs(dir_score) > 4:   lev = int(lev * 1.2)
+        elif abs(dir_score) < 2.5: lev = int(lev * 0.7)
 
-        if fg < 15 or fg > 90: lev = min(lev, 8)
-        elif fg < 25 or fg > 80: lev = min(lev, 15)
+        # ── Ajuste por volatilidad (ATR%) — siempre reduce ─────────────────────
+        if   atr_pct > 5:   lev = int(lev * 0.35)
+        elif atr_pct > 3:   lev = int(lev * 0.55)
+        elif atr_pct > 2:   lev = int(lev * 0.70)
+        elif atr_pct > 1:   lev = int(lev * 0.88)
 
-        if news_bias.get("should_block"):              lev = min(lev, 3)
-        elif news_bias.get("recent_alerts", 0) > 2:   lev = min(lev, 8)
+        # ── F&G: contexto, no veto. Ajuste suave en extremos ──────────────────
+        if fg < 10 or fg > 92:    lev = int(lev * 0.65)   # extremo absoluto
+        elif fg < 20 or fg > 85:  lev = int(lev * 0.80)   # zona de cautela
+
+        # ── Noticias negativas activas: reducción suave ────────────────────────
+        if news_bias.get("should_block"):            lev = int(lev * 0.4)
+        elif news_bias.get("recent_alerts", 0) >= 2: lev = int(lev * 0.7)
 
         return max(1, min(lev, self.lev_cap))
 

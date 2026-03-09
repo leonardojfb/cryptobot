@@ -105,37 +105,54 @@ class LearningEngine:
         entry_mode    = analysis.get("entry_mode", "STANDARD")
         strategy_type = ENTRY_MODE_TO_STRATEGY.get(entry_mode, "NORMAL")
 
+        # ── Campos Prop-Firm v5 (analysis_engine_bybit v5) ────────────────────
+        # Extraídos del nuevo dict de análisis. Fallback a "UNKNOWN" si la señal
+        # proviene de un análisis legacy que aún no los emite (p.ej. sync fake).
+        regime_at_entry: str = analysis.get("regime")       or "UNKNOWN"
+        setup_family:    str = analysis.get("setup_family") or "UNKNOWN"
+
         rec: Dict[str, Any] = {
-            "trade_id":     trade_id,
-            "symbol":       symbol,
-            "side":         side,
-            "entry_price":  entry_price,
-            "qty":          qty,
-            "leverage":     leverage,
-            "tp":           tp,
-            "sl":           sl,
-            "open_ts":      int(time.time()),
-            "close_ts":     None,
-            "close_price":  None,
-            "pnl_usdt":     None,
-            "pnl_pct":      None,
-            "result":       None,
-            "close_reason": None,
-            "entry_mode":   entry_mode,
-            "strategy_type":strategy_type,   # ← nuevo campo
+            "trade_id":       trade_id,
+            "symbol":         symbol,
+            "side":           side,
+            "entry_price":    entry_price,
+            "qty":            qty,
+            "leverage":       leverage,
+            "tp":             tp,
+            "sl":             sl,
+            "open_ts":        int(time.time()),
+            "close_ts":       None,
+            "close_price":    None,
+            "pnl_usdt":       None,
+            "pnl_pct":        None,
+            "result":         None,
+            "close_reason":   None,
+            "entry_mode":     entry_mode,
+            "strategy_type":  strategy_type,
+            # ── Memoria Institucional: contexto de mercado en el momento de abrir
+            "regime_at_entry": regime_at_entry,  # TREND_UP | TREND_DOWN | RANGE | EXPANSION
+            "setup_family":    setup_family,      # SMC_STANDARD | SMC_SWEEP | SMC_OB | …
             "analysis_snapshot": {
-                "composite_score": analysis.get("composite_score"),
-                "confidence":      analysis.get("confidence"),
-                "signal":          analysis.get("signal"),
-                "entry_mode":      entry_mode,
-                "strategy_type":   strategy_type,
-                "atr":             analysis.get("atr"),
-                "squeeze":         analysis.get("squeeze"),
-                "vol_spike":       analysis.get("vol_spike"),
-                "smc_sweep":       analysis.get("smc_sweep"),
-                "smc_ob_hit":      analysis.get("smc_ob_hit"),
-                "smc_fvg_fill":    analysis.get("smc_fvg_fill"),
-                "smc_vwap_retest": analysis.get("smc_vwap_retest"),
+                # ── v4 backward-compat ─────────────────────────────────────────
+                "composite_score":    analysis.get("composite_score"),
+                "confidence":         analysis.get("confidence"),
+                "signal":             analysis.get("signal"),
+                "entry_mode":         entry_mode,
+                "strategy_type":      strategy_type,
+                "atr":                analysis.get("atr"),
+                "squeeze":            analysis.get("squeeze"),
+                "vol_spike":          analysis.get("vol_spike"),
+                "smc_sweep":          analysis.get("smc_sweep"),
+                "smc_ob_hit":         analysis.get("smc_ob_hit"),
+                "smc_fvg_fill":       analysis.get("smc_fvg_fill"),
+                "smc_vwap_retest":    analysis.get("smc_vwap_retest"),
+                # ── v5 Prop-Firm ───────────────────────────────────────────────
+                "direction_score":    analysis.get("direction_score",
+                                          analysis.get("composite_score")),
+                "trade_quality_score":analysis.get("trade_quality_score"),
+                "regime":             regime_at_entry,
+                "setup_family":       setup_family,
+                # ── scores por TF ──────────────────────────────────────────────
                 "tf_scores": {
                     tf: d.get("score")
                     for tf, d in (analysis.get("tf_details") or {}).items()

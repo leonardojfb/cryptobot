@@ -672,13 +672,19 @@ class AutonomousBot:
     def try_open_trade(self, analysis: Dict) -> bool:
         sym        = analysis["symbol"]
         sig        = analysis["signal"]
-        score      = analysis["composite_score"]
+        # ── Scores arquitectura v5 (con backward-compat) ──────────────────────
+        score      = analysis.get("direction_score",
+                         analysis.get("composite_score", 0))   # v5 alias
         conf       = analysis["confidence"]
         mark       = analysis["mark_price"]
         atr_v      = analysis.get("atr") or 0
         entry_mode = analysis.get("entry_mode", "STANDARD")
         threshold  = analysis.get("threshold", 4.0)
         strategy_type = ENTRY_MODE_TO_STRATEGY.get(entry_mode, "NORMAL")
+
+        # ── Campos Prop-Firm v5 ────────────────────────────────────────────────
+        quality_score = float(analysis.get("trade_quality_score") or 0.0)
+        regime        = analysis.get("regime", "UNKNOWN")
 
         # ── Pre-filtros baratos (sin IO) ───────────────────────────────────────
         if sym in PROBLEMATIC_SYMBOLS:
@@ -688,6 +694,23 @@ class AutonomousBot:
             return False
         if sig == "FLAT":
             return False
+
+        # ══════════════════════════════════════════════════════════════════
+        #  ▼▼▼  BLOQUEADOR DURO: TRADE QUALITY (Prop-Firm gate)  ▼▼▼
+        # ══════════════════════════════════════════════════════════════════
+        # Se evalúa ANTES que los Kill-Switches para no desperdiciar CPU.
+        # Un score < 40 implica SL absurdo, sin volumen o precio muy lejos
+        # del VWAP — ninguna estrategia institucional operaría aquí.
+        if quality_score < 40.0:
+            log.info(
+                RC.fmt(RC.BLOCKED_LOW_QUALITY,
+                       symbol=sym, quality=f"{quality_score:.1f}",
+                       regime=regime)
+            )
+            return False
+        # ══════════════════════════════════════════════════════════════════
+        #  ▲▲▲  FIN BLOQUEADOR DURO QUALITY  ▲▲▲
+        # ══════════════════════════════════════════════════════════════════
 
         # ══════════════════════════════════════════════════════════════════
         #  ▼▼▼  KILL-SWITCH GATE — PRIMERO, ANTES QUE CUALQUIER LÓGICA  ▼▼▼
@@ -894,19 +917,23 @@ class AutonomousBot:
 
         # ── Registrar posición ─────────────────────────────────────────────────
         pos_data: Dict[str, Any] = {
-            "trade_id":     _pending_id,
-            "symbol":       sym,
-            "side":         sig,
-            "entry_price":  mark,
-            "qty":          qty,
-            "leverage":     final_leverage,
-            "tp":           tp,
-            "sl":           sl,
-            "open_ts":      int(time.time()),
-            "peak_price":   mark,
-            "atr":          atr_v,
-            "ai_decision":  ai_decision,
-            "strategy_type":strategy_type,
+            "trade_id":       _pending_id,
+            "symbol":         sym,
+            "side":           sig,
+            "entry_price":    mark,
+            "qty":            qty,
+            "leverage":       final_leverage,
+            "tp":             tp,
+            "sl":             sl,
+            "initial_sl":     sl,    # ← SL original para calcular 1R en ATM
+            "open_ts":        int(time.time()),
+            "peak_price":     mark,
+            "atr":            atr_v,
+            "ai_decision":    ai_decision,
+            "strategy_type":  strategy_type,
+            # ── Campos ATM híbrido ─────────────────────────────────────────────
+            "sl_moved_to_be":    False,   # se activa cuando el SL llega a BE
+            "has_taken_partial": False,   # se activa tras el cierre parcial 1R
         }
         with self._lock:
             self.open_positions[sym] = pos_data
@@ -938,6 +965,10 @@ class AutonomousBot:
         risk_s = self.risk_mgr.get_status()
         cb_s   = self.api_cb.get_status()
 
+        regime_emoji = {
+            "TREND_UP":"📈","TREND_DOWN":"📉","RANGE":"↔️","EXPANSION":"💥"
+        }.get(regime, "❓")
+
         # ── "trades": TRADE ABIERTO ───────────────────────────────────────────
         if notify_prefs.is_enabled("trades"):
             self.tg.send(
@@ -947,6 +978,7 @@ class AutonomousBot:
                 f"TP: <code>{tp}</code>  SL: <code>{sl}</code>\n"
                 f"R:R ≈ 1:{rr:.1f}\n"
                 f"Score: {score:+.2f}  Conf: {conf:.0%}  [{entry_mode}]\n"
+                f"Quality: {quality_score:.0f}/100  Régimen: {regime_emoji} {regime}\n"
                 f"{aligned_txt}\n"
                 f"SMC: {' '.join(smc_badges) if smc_badges else 'sin setup'}\n"
                 f"🤖 IA: {smc_anal[:60]}\n"
@@ -974,7 +1006,8 @@ class AutonomousBot:
         log.info(
             f"✅ ABIERTO {sym} {sig} @ {mark:.4f}  "
             f"TP={tp}  SL={sl}  qty={qty}  lev={final_leverage}x  "
-            f"score={score:.2f}  strategy={strategy_type}  [AI_lev={ai_lev}x]"
+            f"score={score:.2f}  quality={quality_score:.0f}  "
+            f"regime={regime}  strategy={strategy_type}  [AI_lev={ai_lev}x]"
         )
         return True
 
@@ -1162,6 +1195,133 @@ class AutonomousBot:
                         )
                     except Exception:
                         pass
+
+        # ══════════════════════════════════════════════════════════════════
+        #  ▼▼▼  SALIDA HÍBRIDA INSTITUCIONAL (1R Gate)  ▼▼▼
+        # ══════════════════════════════════════════════════════════════════
+        #
+        #  Lógica de un experto institucional:
+        #    - Calcula 1R = abs(entry_price − sl_inicial)
+        #    - Si el precio está en ganancia > 1R Y todavía no se ha
+        #      activado esta lógica (sl_moved_to_be = False):
+        #        a) Mueve el SL a Break-Even (entry_price) → riesgo = 0
+        #        b) Cierra el 50% de la posición → "toma parcial"
+        #        c) Deja correr el 50% restante como "runner"
+        #        d) Notifica Telegram con el estado del trade asegurado
+        #
+        #  Condiciones de seguridad:
+        #    - atr_v debe ser > 0 para que 1R sea calculable
+        #    - sl_inicial debe existir; si no, usa 1×ATR como fallback
+        #    - No se reintenta si has_taken_partial ya está en True
+        #    - Cualquier fallo de API cancela silenciosamente (no rompe el loop)
+        # ══════════════════════════════════════════════════════════════════
+        entry_price   = pos["entry_price"]
+        sl_moved_to_be    = pos.get("sl_moved_to_be",    False)
+        has_taken_partial = pos.get("has_taken_partial", False)
+
+        if not sl_moved_to_be and not has_taken_partial:
+            # ── Calcular 1R ────────────────────────────────────────────────
+            initial_sl = pos.get("initial_sl") or pos.get("sl")
+            if initial_sl and entry_price > 0:
+                one_r = abs(entry_price - initial_sl)
+            elif atr_v > 0:
+                one_r = atr_v       # fallback: sin SL inicial usamos 1×ATR
+            else:
+                one_r = 0
+
+            if one_r > 0:
+                # Precio en ganancia (en términos absolutos, sin apalancamiento)
+                price_gain = (
+                    (mark - entry_price) if side == "LONG"
+                    else (entry_price - mark)
+                )
+
+                if price_gain > one_r:
+                    # ── a) Mover SL a Break-Even ───────────────────────────
+                    be_price  = self.client.safe_price(sym, entry_price)
+                    be_ok     = False
+                    try:
+                        self.client.set_tp_sl(sym, sl=be_price)
+                        be_ok = True
+                    except Exception as _be_err:
+                        log.warning(
+                            f"ATM 1R [{sym}] set_tp_sl (BE) falló: {_be_err}"
+                        )
+
+                    # ── b) Cierre parcial 50% ──────────────────────────────
+                    partial_ok  = False
+                    partial_qty = 0.0
+                    if be_ok:
+                        current_qty = float(pos.get("qty") or 0)
+                        raw_half    = current_qty / 2.0
+                        try:
+                            partial_qty, _ = self.client.safe_qty(sym, raw_half)
+                        except Exception:
+                            partial_qty = raw_half   # fallback sin redondeo
+
+                        if partial_qty > 0:
+                            side_str = "Sell" if side == "LONG" else "Buy"
+                            try:
+                                resp_p = self.client.place_order(
+                                    sym, side_str, partial_qty,
+                                    reduce_only=True
+                                )
+                                if resp_p.get("retCode", -1) == 0:
+                                    partial_ok = True
+                                else:
+                                    log.warning(
+                                        f"ATM 1R [{sym}] cierre parcial rc="
+                                        f"{resp_p.get('retCode')} "
+                                        f"{resp_p.get('retMsg','')}"
+                                    )
+                            except Exception as _pe:
+                                log.warning(
+                                    f"ATM 1R [{sym}] cierre parcial excepción: {_pe}"
+                                )
+
+                    # ── c) Actualizar estado local ─────────────────────────
+                    with self._lock:
+                        if sym in self.open_positions:
+                            self.open_positions[sym]["sl_moved_to_be"]    = True
+                            self.open_positions[sym]["has_taken_partial"]  = True
+                            if be_ok:
+                                self.open_positions[sym]["sl"]            = be_price
+                                self.open_positions[sym]["sl_at_breakeven"]= True
+                            if partial_ok:
+                                # Actualizar qty restante (runner)
+                                new_qty = float(
+                                    self.open_positions[sym].get("qty", 0)
+                                ) - partial_qty
+                                self.open_positions[sym]["qty"] = max(0.0, new_qty)
+
+                    # ── d) Notificación Telegram ───────────────────────────
+                    pnl_partial = price_gain * partial_qty if partial_ok else 0.0
+                    log.info(
+                        f"🏦 ATM 1R [{sym}] {side}  price_gain={price_gain:.4f} "
+                        f"one_r={one_r:.4f}  be={'✅' if be_ok else '❌'}  "
+                        f"partial={'✅' if partial_ok else '❌'}  "
+                        f"partial_qty={partial_qty}  pnl≈{pnl_partial:+.2f}"
+                    )
+                    if notify_prefs.is_enabled("trades"):
+                        status_be  = "✅ SL → Break-Even" if be_ok  else "⚠️ SL sin cambios"
+                        status_prt = (
+                            f"✅ 50% cerrado ({partial_qty} contratos)"
+                            if partial_ok else "⚠️ cierre parcial falló"
+                        )
+                        self.tg.send(
+                            f"🏦 <b>TRADE ASEGURADO — Runner activo</b>\n"
+                            f"Par: <b>{sym}</b>  {side}  [{pos.get('strategy_type','?')}]\n"
+                            f"Ganancia ≥ 1R ({one_r:.4f})\n"
+                            f"Entrada: <code>{entry_price:.4f}</code>  "
+                            f"Precio actual: <code>{mark:.4f}</code>\n"
+                            f"{status_be}\n"
+                            f"{status_prt}\n"
+                            f"🏃 Runner: 50% restante libre de riesgo\n"
+                            f"PnL parcial ≈ <code>{pnl_partial:+.2f} USDT</code>"
+                        )
+        # ══════════════════════════════════════════════════════════════════
+        #  ▲▲▲  FIN SALIDA HÍBRIDA 1R  ▲▲▲
+        # ══════════════════════════════════════════════════════════════════
 
         # ── Verificar cierre externo (TP/SL hit) ───────────────────────────────
         try:

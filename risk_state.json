@@ -1,5 +1,5 @@
 {
-  "daily_pnl": 0.0,
+  "daily_pnl": -79.1024,
   "day_start_ts": 1772928000,
   "dd_locked": false,
   "dd_unlock_ts": 0,
@@ -8,11 +8,11 @@
   "global_cb_until": 0.0,
   "strategy": {
     "FAST": {
-      "consecutive_losses": 0,
+      "consecutive_losses": 1,
       "cooldown_until": 0.0
     },
     "NORMAL": {
-      "consecutive_losses": 1,
+      "consecutive_losses": 0,
       "cooldown_until": 1772970436.8720682
     },
     "INSTITUTIONAL": {
@@ -20,5 +20,5 @@
       "cooldown_until": 0.0
     }
   },
-  "saved_at": 1772928082
+  "saved_at": 1773007240
 }
